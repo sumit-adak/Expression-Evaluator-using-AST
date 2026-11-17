@@ -3,9 +3,9 @@
 
 ---
 
-# 🚀 **[👉 CLICK HERE TO RUN LIVE DEMO IN BROWSER 👈](https://sumit-adak.github.io/Expression-Evaluator-using-AST/)**
+# 🚀 **[👉 CLICK HERE TO RUN LIVE DEMO (VERCEL) 👈](https://expressionevaluatorusingast.vercel.app/)**
 
-> ### **🌐 Live Web App URL:** **`https://sumit-adak.github.io/Expression-Evaluator-using-AST/`**
+> ### **🌐 Live Web App URL:** **`https://expressionevaluatorusingast.vercel.app/`**
 > **No installation or setup required!** Click the link above to immediately run and test the interactive AST visualizer, step-by-step evaluator animation, tokens table, traversals, and three-address code generation in your browser.
 
 ---
@@ -147,18 +147,11 @@ primary    → NUMBER
 
 ## 4. How to Run & Deploy
 
-### A. Run Online via GitHub Pages (1-Click Deployment)
-This repository is configured to be hosted for free on **GitHub Pages**. To activate the live link:
-1. Go to your repository on GitHub: [`https://github.com/sumit-adak/Expression-Evaluator-using-AST`](https://github.com/sumit-adak/Expression-Evaluator-using-AST)
-2. Click **Settings** (tab at the top right of the repository).
-3. In the left sidebar, click **Pages** (under the "Code and automation" section).
-4. Under **Build and deployment > Branch**:
-   - Select branch: `main`
-   - Select folder: `/ (root)`
-   - Click **Save**.
-5. Wait 30–60 seconds. GitHub will display:
-   > *Your site is live at:* **`https://sumit-adak.github.io/Expression-Evaluator-using-AST/`**
-6. Anyone in the world can now click that link and run the project directly!
+### A. Run Online via Vercel (Live Deployment)
+The application is deployed live on Vercel:
+> 🔗 **Live URL:** **`https://expressionevaluatorusingast.vercel.app/`**
+- Instant 1-click execution on any desktop, tablet, or mobile browser.
+- Runs 100% in-browser with zero latency.
 
 ### B. Run Locally (Offline Mode)
 1. Clone or download this repository.
@@ -166,9 +159,11 @@ This repository is configured to be hosted for free on **GitHub Pages**. To acti
 3. **Double-click `index.html`** to open it immediately in Google Chrome, Microsoft Edge, Firefox, or Safari.
 4. *Alternative:* Double-click `start.bat` or run `node server.js` to run the local server at `http://localhost:3000`.
 
-### C. Deploy to Vercel / Netlify (Optional Alternative)
-- **Vercel:** Import this GitHub repository into [Vercel](https://vercel.com); it detects `index.html` automatically with zero configuration.
-- **Netlify:** Drag and drop the project folder directly into [Netlify Drop](https://app.netlify.com/drop).
+### C. Optional: Deploy to GitHub Pages
+If you also want to host it on GitHub Pages:
+1. Go to your repository **Settings > Pages**.
+2. Select Branch: `main` and Folder: `/ (root)`, then click **Save**.
+3. It will also be accessible at `https://sumit-adak.github.io/Expression-Evaluator-using-AST/`.
 
 ---
 

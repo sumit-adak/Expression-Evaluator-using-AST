@@ -6,109 +6,105 @@
   <title>Expression Evaluator using AST | Compiler Design Lab</title>
   <style>
     /* ==========================================================================
-       CSS VARIABLES & THEME SETUP
+       CSS VARIABLES & THEME SETUP (Clean Academic / Engineering Theme - No Glow)
        ========================================================================== */
     :root {
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       --font-mono: "JetBrains Mono", "Fira Code", Consolas, Monaco, "Courier New", monospace;
 
-      /* Dark Theme (Default) */
-      --bg: #090d16;
-      --bg-alt: #0f172a;
-      --card-bg: #131c31;
-      --card-border: #1e293b;
-      --card-border-hover: #334155;
-      --text: #f1f5f9;
+      /* Dark Theme (Default) - Clean Slate/Charcoal */
+      --bg: #0f172a;
+      --bg-alt: #1e293b;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --card-border-hover: #475569;
+      --text: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
 
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --primary-glow: rgba(99, 102, 241, 0.35);
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
 
-      --accent-cyan: #06b6d4;
-      --accent-purple: #a855f7;
-      --accent-pink: #ec4899;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
+      --accent-blue: #0284c7;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
 
-      /* Node Theme Colors */
-      --node-bin-bg: rgba(99, 102, 241, 0.15);
-      --node-bin-border: #6366f1;
-      --node-bin-text: #a5b4fc;
+      /* Node Theme Colors (Clean Solid Academic Palette) */
+      --node-bin-bg: rgba(37, 99, 235, 0.12);
+      --node-bin-border: #2563eb;
+      --node-bin-text: #60a5fa;
 
-      --node-un-bg: rgba(168, 85, 247, 0.15);
-      --node-un-border: #a855f7;
-      --node-un-text: #d8b4fe;
+      --node-un-bg: rgba(2, 132, 199, 0.12);
+      --node-un-border: #0284c7;
+      --node-un-text: #38bdf8;
 
-      --node-num-bg: rgba(16, 185, 129, 0.15);
-      --node-num-border: #10b981;
-      --node-num-text: #6ee7b7;
+      --node-num-bg: rgba(22, 163, 74, 0.12);
+      --node-num-border: #16a34a;
+      --node-num-text: #4ade80;
 
-      --node-var-bg: rgba(245, 158, 11, 0.15);
-      --node-var-border: #f59e0b;
-      --node-var-text: #fde68a;
+      --node-var-bg: rgba(217, 119, 6, 0.12);
+      --node-var-border: #d97706;
+      --node-var-text: #fbbf24;
 
-      --node-fn-bg: rgba(6, 182, 212, 0.15);
-      --node-fn-border: #06b6d4;
-      --node-fn-text: #a5f3fc;
+      --node-fn-bg: rgba(71, 85, 105, 0.15);
+      --node-fn-border: #64748b;
+      --node-fn-text: #cbd5e1;
 
-      --node-assign-bg: rgba(236, 72, 153, 0.15);
-      --node-assign-border: #ec4899;
-      --node-assign-text: #fbcfe8;
+      --node-assign-bg: rgba(234, 88, 12, 0.12);
+      --node-assign-border: #ea580c;
+      --node-assign-text: #fb923c;
 
-      --edge-color: #334155;
-      --edge-highlight: #6366f1;
-      --svg-grid: #131d33;
+      --edge-color: #475569;
+      --edge-highlight: #2563eb;
+      --svg-grid: #1e293b;
 
-      --radius: 12px;
-      --radius-sm: 8px;
-      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      --radius: 8px;
+      --radius-sm: 6px;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
     }
 
     [data-theme="light"] {
       --bg: #f8fafc;
       --bg-alt: #f1f5f9;
       --card-bg: #ffffff;
-      --card-border: #e2e8f0;
-      --card-border-hover: #cbd5e1;
+      --card-border: #cbd5e1;
+      --card-border-hover: #94a3b8;
       --text: #0f172a;
       --text-muted: #475569;
-      --text-dim: #94a3b8;
+      --text-dim: #64748b;
 
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --primary-glow: rgba(79, 70, 229, 0.2);
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
 
-      --node-bin-bg: #eef2ff;
-      --node-bin-border: #6366f1;
-      --node-bin-text: #3730a3;
+      --node-bin-bg: #eff6ff;
+      --node-bin-border: #2563eb;
+      --node-bin-text: #1d4ed8;
 
-      --node-un-bg: #faf5ff;
-      --node-un-border: #a855f7;
-      --node-un-text: #6b21a8;
+      --node-un-bg: #f0f9ff;
+      --node-un-border: #0284c7;
+      --node-un-text: #0369a1;
 
-      --node-num-bg: #ecfdf5;
-      --node-num-border: #10b981;
-      --node-num-text: #065f46;
+      --node-num-bg: #f0fdf4;
+      --node-num-border: #16a34a;
+      --node-num-text: #15803d;
 
       --node-var-bg: #fffbeb;
-      --node-var-border: #f59e0b;
-      --node-var-text: #92400e;
+      --node-var-border: #d97706;
+      --node-var-text: #b45309;
 
-      --node-fn-bg: #ecfeff;
-      --node-fn-border: #06b6d4;
-      --node-fn-text: #155e75;
+      --node-fn-bg: #f8fafc;
+      --node-fn-border: #475569;
+      --node-fn-text: #1e293b;
 
-      --node-assign-bg: #fdf2f8;
-      --node-assign-border: #ec4899;
-      --node-assign-text: #9d174d;
+      --node-assign-bg: #fff7ed;
+      --node-assign-border: #ea580c;
+      --node-assign-text: #c2410c;
 
-      --edge-color: #cbd5e1;
-      --edge-highlight: #4f46e5;
+      --edge-color: #94a3b8;
+      --edge-highlight: #2563eb;
       --svg-grid: #e2e8f0;
-      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
     * {
@@ -152,30 +148,27 @@
     }
 
     .brand-icon {
-      width: 42px;
-      height: 42px;
-      background: linear-gradient(135deg, var(--primary), var(--accent-purple));
-      border-radius: 10px;
+      width: 38px;
+      height: 38px;
+      background: var(--primary);
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 15px var(--primary-glow);
     }
 
     .brand-icon svg {
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       stroke: #ffffff;
       fill: none;
     }
 
     .brand-title h1 {
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       font-weight: 700;
-      letter-spacing: -0.02em;
-      background: linear-gradient(90deg, var(--text) 30%, var(--accent-cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.01em;
+      color: var(--text);
     }
 
     .brand-title p {
@@ -195,13 +188,13 @@
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      padding: 0.55rem 1.1rem;
+      padding: 0.5rem 1rem;
       border-radius: var(--radius-sm);
       font-size: 0.875rem;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid transparent;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
       font-family: inherit;
     }
 
@@ -214,16 +207,13 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary), #4f46e5);
+      background: var(--primary);
       color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.1);
-      box-shadow: 0 4px 12px var(--primary-glow);
+      border-color: var(--primary-hover);
     }
 
     .btn-primary:hover {
-      background: linear-gradient(135deg, var(--primary-hover), #4338ca);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px var(--primary-glow);
+      background: var(--primary-hover);
     }
 
     .btn-secondary {
@@ -295,31 +285,30 @@
 
     .expr-input {
       width: 100%;
-      padding: 0.85rem 1.25rem;
+      padding: 0.75rem 1.1rem;
       background: var(--bg);
-      border: 2px solid var(--card-border);
+      border: 1px solid var(--card-border);
       border-radius: var(--radius-sm);
       color: var(--text);
       font-family: var(--font-mono);
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 500;
-      transition: all 0.2s ease;
+      transition: border-color 0.15s ease;
       outline: none;
     }
 
     .expr-input:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-glow);
     }
 
     /* Error Pointer Indicator */
     .error-pointer-container {
       font-family: var(--font-mono);
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       color: var(--danger);
       white-space: pre;
       margin-top: 0.25rem;
-      padding-left: 1.35rem; /* align with input padding + border */
+      padding-left: 1.25rem;
       min-height: 1.2rem;
       line-height: 1;
       display: none;
@@ -327,13 +316,8 @@
     }
 
     .error-pointer-caret {
-      font-weight: 900;
-      animation: pulseCaret 1s infinite alternate;
-    }
-
-    @keyframes pulseCaret {
-      from { opacity: 0.6; transform: translateY(0); }
-      to { opacity: 1; transform: translateY(-2px); }
+      font-weight: 800;
+      color: var(--danger);
     }
 
     .examples-bar {
@@ -355,12 +339,12 @@
       background: var(--bg);
       border: 1px solid var(--card-border);
       color: var(--text-muted);
-      padding: 0.3rem 0.7rem;
-      border-radius: 6px;
+      padding: 0.3rem 0.65rem;
+      border-radius: 4px;
       font-family: var(--font-mono);
       font-size: 0.8rem;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
       user-select: none;
     }
 
@@ -368,7 +352,6 @@
       background: var(--bg-alt);
       border-color: var(--primary);
       color: var(--primary);
-      transform: translateY(-1px);
     }
 
     /* Result Card */
@@ -376,18 +359,17 @@
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: var(--radius);
-      padding: 1.25rem 1.5rem;
+      padding: 1.15rem 1.4rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 1rem;
-      transition: all 0.3s ease;
     }
 
     .result-card.has-error {
-      border-color: rgba(239, 68, 68, 0.4);
-      background: rgba(239, 68, 68, 0.05);
+      border-color: var(--danger);
+      background: rgba(220, 38, 38, 0.05);
     }
 
     .result-info {
@@ -406,9 +388,9 @@
 
     .result-value-display {
       font-family: var(--font-mono);
-      font-size: 1.75rem;
+      font-size: 1.65rem;
       font-weight: 700;
-      color: var(--accent-cyan);
+      color: var(--primary);
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -654,17 +636,11 @@
     .node-Assign rect { fill: var(--node-assign-bg); stroke: var(--node-assign-border); }
     .node-Assign text { fill: var(--node-assign-text); }
 
-    /* Animation Active Glow */
+    /* Animation Active Node Highlight (Clean solid highlight, no glow) */
     .ast-node.is-active rect {
-      stroke: #ffffff !important;
-      stroke-width: 3.5 !important;
-      filter: drop-shadow(0 0 12px var(--accent-cyan));
-      animation: pulseGlow 1s infinite alternate;
-    }
-
-    @keyframes pulseGlow {
-      from { filter: drop-shadow(0 0 6px var(--accent-cyan)); }
-      to { filter: drop-shadow(0 0 16px var(--accent-cyan)); }
+      stroke: var(--primary) !important;
+      stroke-width: 3px !important;
+      fill: rgba(37, 99, 235, 0.22) !important;
     }
 
     .legend-bar {
@@ -1355,7 +1331,7 @@
             <div class="traversal-card">
               <div class="traversal-header">
                 <div class="traversal-title">
-                  <span class="badge-pills" style="background:rgba(99,102,241,0.2); color:var(--primary);">INORDER</span>
+                  <span class="badge-pills" style="background:rgba(37,99,235,0.15); color:var(--primary);">INORDER</span>
                   Infix Notation (with explicit parentheses)
                 </div>
                 <button class="btn btn-secondary btn-sm" data-copy-target="traversalInorder">Copy</button>
@@ -1367,7 +1343,7 @@
             <div class="traversal-card">
               <div class="traversal-header">
                 <div class="traversal-title">
-                  <span class="badge-pills" style="background:rgba(168,85,247,0.2); color:var(--accent-purple);">PREORDER</span>
+                  <span class="badge-pills" style="background:rgba(71,85,105,0.15); color:var(--text-muted);">PREORDER</span>
                   Prefix Notation (Polish Notation)
                 </div>
                 <button class="btn btn-secondary btn-sm" data-copy-target="traversalPreorder">Copy</button>
@@ -1379,7 +1355,7 @@
             <div class="traversal-card">
               <div class="traversal-header">
                 <div class="traversal-title">
-                  <span class="badge-pills" style="background:rgba(16,185,129,0.2); color:var(--success);">POSTORDER</span>
+                  <span class="badge-pills" style="background:rgba(22,163,74,0.15); color:var(--success);">POSTORDER</span>
                   Postfix Notation (Reverse Polish Notation / RPN)
                 </div>
                 <button class="btn btn-secondary btn-sm" data-copy-target="traversalPostorder">Copy</button>
@@ -2683,7 +2659,7 @@ primary    &rarr; NUMBER
           badgeRect.setAttribute('width', 60);
           badgeRect.setAttribute('height', 20);
           badgeRect.setAttribute('rx', 4);
-          badgeRect.setAttribute('fill', '#06b6d4');
+          badgeRect.setAttribute('fill', '#2563eb');
 
           const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           badgeText.setAttribute('x', 0);
@@ -2691,7 +2667,7 @@ primary    &rarr; NUMBER
           badgeText.setAttribute('text-anchor', 'middle');
           badgeText.setAttribute('font-size', '10');
           badgeText.setAttribute('font-weight', 'bold');
-          badgeText.setAttribute('fill', '#090d16');
+          badgeText.setAttribute('fill', '#ffffff');
           badgeText.textContent = `&rarr; ${intermediateVal}`.replace('&rarr;', '→');
 
           badgeG.appendChild(badgeRect);
