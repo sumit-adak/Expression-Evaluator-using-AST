@@ -1,8 +1,17 @@
-# Expression Evaluator using AST (Abstract Syntax Tree)
-**Compiler Design Lab Project (PBL)**  
-**Developer:** Sumit Adak  
+# ⚡ Expression Evaluator using AST (Abstract Syntax Tree)
+### **Compiler Design Lab Project (PBL) &bull; Developer: Sumit Adak**
+
+---
+
+# 🚀 **[👉 CLICK HERE TO RUN LIVE DEMO IN BROWSER 👈](https://sumit-adak.github.io/Expression-Evaluator-using-AST/)**
+
+> ### **🌐 Live Web App URL:** **`https://sumit-adak.github.io/Expression-Evaluator-using-AST/`**
+> **No installation or setup required!** Click the link above to immediately run and test the interactive AST visualizer, step-by-step evaluator animation, tokens table, traversals, and three-address code generation in your browser.
+
+---
+
 **Technology:** Pure Vanilla HTML5, CSS3, JavaScript (ES6+), and SVG (Single self-contained file, **no external libraries, no CDN, no npm, offline-ready**).  
-**Execution:** Zero installation or build step. Simply double-click `index.html` to open in any modern web browser.
+**Offline Execution:** You can also clone the repository and simply double-click `index.html` to open it in any modern browser completely offline.
 
 ---
 
@@ -136,12 +145,30 @@ primary    → NUMBER
 
 ---
 
-## 4. How to Run
+## 4. How to Run & Deploy
 
-1. Open the project folder `compilerPBL`.
+### A. Run Online via GitHub Pages (1-Click Deployment)
+This repository is configured to be hosted for free on **GitHub Pages**. To activate the live link:
+1. Go to your repository on GitHub: [`https://github.com/sumit-adak/Expression-Evaluator-using-AST`](https://github.com/sumit-adak/Expression-Evaluator-using-AST)
+2. Click **Settings** (tab at the top right of the repository).
+3. In the left sidebar, click **Pages** (under the "Code and automation" section).
+4. Under **Build and deployment > Branch**:
+   - Select branch: `main`
+   - Select folder: `/ (root)`
+   - Click **Save**.
+5. Wait 30–60 seconds. GitHub will display:
+   > *Your site is live at:* **`https://sumit-adak.github.io/Expression-Evaluator-using-AST/`**
+6. Anyone in the world can now click that link and run the project directly!
+
+### B. Run Locally (Offline Mode)
+1. Clone or download this repository.
 2. Locate `index.html`.
-3. **Double-click `index.html`** to open it directly in Google Chrome, Microsoft Edge, Mozilla Firefox, or Safari.
-4. **No web server, node server, or internet connection is required.**
+3. **Double-click `index.html`** to open it immediately in Google Chrome, Microsoft Edge, Firefox, or Safari.
+4. *Alternative:* Double-click `start.bat` or run `node server.js` to run the local server at `http://localhost:3000`.
+
+### C. Deploy to Vercel / Netlify (Optional Alternative)
+- **Vercel:** Import this GitHub repository into [Vercel](https://vercel.com); it detects `index.html` automatically with zero configuration.
+- **Netlify:** Drag and drop the project folder directly into [Netlify Drop](https://app.netlify.com/drop).
 
 ---
 
