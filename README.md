@@ -1,5 +1,5 @@
 # ⚡ Expression Evaluator using AST (Abstract Syntax Tree)
-### **Compiler Design Lab Project (PBL) &bull; Developer: Sumit Adak**
+### **Compiler Design Lab Project (PBL) &bull; Developer: Sumit Adak Manisha Sarkar Aftab SK Mirjaj Ajij Milon**
 
 ---
 
