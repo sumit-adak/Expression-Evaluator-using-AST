@@ -1,0 +1,11 @@
+# Dependency directories
+node_modules/
+
+# Temporary test profiles and caches
+chrome_profile/
+test/chrome_profile/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,3311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expression Evaluator using AST | Compiler Design Lab</title>
+  <style>
+    /* ==========================================================================
+       CSS VARIABLES & THEME SETUP
+       ========================================================================== */
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "JetBrains Mono", "Fira Code", Consolas, Monaco, "Courier New", monospace;
+
+      /* Dark Theme (Default) */
+      --bg: #090d16;
+      --bg-alt: #0f172a;
+      --card-bg: #131c31;
+      --card-border: #1e293b;
+      --card-border-hover: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+
+      --accent-cyan: #06b6d4;
+      --accent-purple: #a855f7;
+      --accent-pink: #ec4899;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+
+      /* Node Theme Colors */
+      --node-bin-bg: rgba(99, 102, 241, 0.15);
+      --node-bin-border: #6366f1;
+      --node-bin-text: #a5b4fc;
+
+      --node-un-bg: rgba(168, 85, 247, 0.15);
+      --node-un-border: #a855f7;
+      --node-un-text: #d8b4fe;
+
+      --node-num-bg: rgba(16, 185, 129, 0.15);
+      --node-num-border: #10b981;
+      --node-num-text: #6ee7b7;
+
+      --node-var-bg: rgba(245, 158, 11, 0.15);
+      --node-var-border: #f59e0b;
+      --node-var-text: #fde68a;
+
+      --node-fn-bg: rgba(6, 182, 212, 0.15);
+      --node-fn-border: #06b6d4;
+      --node-fn-text: #a5f3fc;
+
+      --node-assign-bg: rgba(236, 72, 153, 0.15);
+      --node-assign-border: #ec4899;
+      --node-assign-text: #fbcfe8;
+
+      --edge-color: #334155;
+      --edge-highlight: #6366f1;
+      --svg-grid: #131d33;
+
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-alt: #f1f5f9;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --card-border-hover: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-glow: rgba(79, 70, 229, 0.2);
+
+      --node-bin-bg: #eef2ff;
+      --node-bin-border: #6366f1;
+      --node-bin-text: #3730a3;
+
+      --node-un-bg: #faf5ff;
+      --node-un-border: #a855f7;
+      --node-un-text: #6b21a8;
+
+      --node-num-bg: #ecfdf5;
+      --node-num-border: #10b981;
+      --node-num-text: #065f46;
+
+      --node-var-bg: #fffbeb;
+      --node-var-border: #f59e0b;
+      --node-var-text: #92400e;
+
+      --node-fn-bg: #ecfeff;
+      --node-fn-border: #06b6d4;
+      --node-fn-text: #155e75;
+
+      --node-assign-bg: #fdf2f8;
+      --node-assign-border: #ec4899;
+      --node-assign-text: #9d174d;
+
+      --edge-color: #cbd5e1;
+      --edge-highlight: #4f46e5;
+      --svg-grid: #e2e8f0;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* ==========================================================================
+       HEADER & NAVIGATION
+       ========================================================================== */
+    header {
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .brand-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: #ffffff;
+      fill: none;
+    }
+
+    .brand-title h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--text) 30%, var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #4f46e5);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--primary-hover), #4338ca);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px var(--primary-glow);
+    }
+
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text);
+      border-color: var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-alt);
+      border-color: var(--card-border-hover);
+      color: var(--primary);
+    }
+
+    .btn-sm {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    .badge-pills {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       MAIN LAYOUT
+       ========================================================================== */
+    main {
+      flex: 1;
+      padding: 1.5rem 2rem 2.5rem;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Input & Control Card */
+    .input-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+
+    .input-wrapper {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .expr-input {
+      width: 100%;
+      padding: 0.85rem 1.25rem;
+      background: var(--bg);
+      border: 2px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .expr-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    /* Error Pointer Indicator */
+    .error-pointer-container {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      color: var(--danger);
+      white-space: pre;
+      margin-top: 0.25rem;
+      padding-left: 1.35rem; /* align with input padding + border */
+      min-height: 1.2rem;
+      line-height: 1;
+      display: none;
+      user-select: none;
+    }
+
+    .error-pointer-caret {
+      font-weight: 900;
+      animation: pulseCaret 1s infinite alternate;
+    }
+
+    @keyframes pulseCaret {
+      from { opacity: 0.6; transform: translateY(0); }
+      to { opacity: 1; transform: translateY(-2px); }
+    }
+
+    .examples-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .examples-label {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .example-chip {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .example-chip:hover {
+      background: var(--bg-alt);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    /* Result Card */
+    .result-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .result-card.has-error {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .result-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .result-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .result-value-display {
+      font-family: var(--font-mono);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .result-card.has-error .result-value-display {
+      color: var(--danger);
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+
+    .result-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .meta-chip {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    /* ==========================================================================
+       TWO COLUMN WORKSPACE
+       ========================================================================== */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Compiler Phases Card & Tabs */
+    .phases-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 580px;
+    }
+
+    .tabs-header {
+      display: flex;
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--card-border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tabs-header::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      padding: 0.85rem 1.25rem;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: var(--card-bg);
+    }
+
+    .tab-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    .tab-pane {
+      display: none;
+      padding: 1.25rem;
+      flex: 1;
+      flex-direction: column;
+    }
+
+    .tab-pane.active {
+      display: flex;
+    }
+
+    /* ==========================================================================
+       TAB 1: AST VISUALIZATION
+       ========================================================================== */
+    .ast-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.85rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .view-toggle {
+      display: flex;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+    }
+
+    .view-btn {
+      padding: 0.35rem 0.85rem;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .view-btn.active {
+      background: var(--card-bg);
+      color: var(--primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .zoom-controls {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+    }
+
+    .svg-viewport {
+      width: 100%;
+      height: 480px;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .svg-viewport:active {
+      cursor: grabbing;
+    }
+
+    #astSvg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* AST Node Styles in SVG */
+    .tree-edge {
+      stroke: var(--edge-color);
+      stroke-width: 2.5;
+      fill: none;
+      transition: stroke 0.3s ease;
+    }
+
+    .tree-edge.active-edge {
+      stroke: var(--primary);
+      stroke-width: 3.5;
+    }
+
+    .ast-node {
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .ast-node rect {
+      stroke-width: 2;
+      transition: all 0.25s ease;
+    }
+
+    .ast-node text {
+      font-family: var(--font-mono);
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+
+    .ast-node .node-type-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      opacity: 0.75;
+    }
+
+    .ast-node .node-main-label {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    /* Node color themes */
+    .node-BinaryOp rect { fill: var(--node-bin-bg); stroke: var(--node-bin-border); }
+    .node-BinaryOp text { fill: var(--node-bin-text); }
+
+    .node-UnaryOp rect { fill: var(--node-un-bg); stroke: var(--node-un-border); }
+    .node-UnaryOp text { fill: var(--node-un-text); }
+
+    .node-Number rect { fill: var(--node-num-bg); stroke: var(--node-num-border); }
+    .node-Number text { fill: var(--node-num-text); }
+
+    .node-Variable rect { fill: var(--node-var-bg); stroke: var(--node-var-border); }
+    .node-Variable text { fill: var(--node-var-text); }
+
+    .node-FunctionCall rect { fill: var(--node-fn-bg); stroke: var(--node-fn-border); }
+    .node-FunctionCall text { fill: var(--node-fn-text); }
+
+    .node-Assign rect { fill: var(--node-assign-bg); stroke: var(--node-assign-border); }
+    .node-Assign text { fill: var(--node-assign-text); }
+
+    /* Animation Active Glow */
+    .ast-node.is-active rect {
+      stroke: #ffffff !important;
+      stroke-width: 3.5 !important;
+      filter: drop-shadow(0 0 12px var(--accent-cyan));
+      animation: pulseGlow 1s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { filter: drop-shadow(0 0 6px var(--accent-cyan)); }
+      to { filter: drop-shadow(0 0 16px var(--accent-cyan)); }
+    }
+
+    .legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--card-border);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    /* Code block for JSON and ASCII Tree */
+    .code-container {
+      position: relative;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--card-border);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .code-box {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 1rem;
+      overflow: auto;
+      max-height: 440px;
+      color: var(--text);
+      white-space: pre;
+    }
+
+    /* ==========================================================================
+       TAB 2: TOKENS TABLE
+       ========================================================================== */
+    .table-container {
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+
+    th {
+      background: var(--bg-alt);
+      padding: 0.75rem 1rem;
+      color: var(--text-dim);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--card-border);
+      color: var(--text);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .token-badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .tok-NUMBER { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tok-IDENT { background: rgba(245, 158, 11, 0.15); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .tok-OP { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .tok-PAREN { background: rgba(6, 182, 212, 0.15); color: #a5f3fc; border: 1px solid rgba(6, 182, 212, 0.3); }
+    .tok-ASSIGN { background: rgba(236, 72, 153, 0.15); color: #fbcfe8; border: 1px solid rgba(236, 72, 153, 0.3); }
+    .tok-COMMA { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); }
+    .tok-EOF { background: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3); }
+
+    /* ==========================================================================
+       TAB 3: TRAVERSALS
+       ========================================================================== */
+    .traversals-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .traversal-card {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .traversal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .traversal-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .traversal-text {
+      background: var(--bg-alt);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      color: var(--accent-cyan);
+      word-break: break-all;
+    }
+
+    .traversal-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       TAB 4: STEP-BY-STEP EVALUATION
+       ========================================================================== */
+    .playback-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .speed-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .speed-selector select {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      font-family: inherit;
+    }
+
+    .active-step-row td {
+      background: rgba(99, 102, 241, 0.15) !important;
+      font-weight: 700;
+      color: #ffffff;
+      border-left: 3px solid var(--accent-cyan);
+    }
+
+    /* ==========================================================================
+       TAB 5: THREE-ADDRESS CODE (TAC)
+       ========================================================================== */
+    .tac-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .tac-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ==========================================================================
+       SIDEBAR PANELS (VARIABLES & HISTORY)
+       ========================================================================== */
+    .side-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .side-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .side-card-header {
+      padding: 0.85rem 1.25rem;
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .side-card-title {
+      font-size: 0.875rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .side-card-body {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .var-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .var-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.85rem;
+      font-family: var(--font-mono);
+    }
+
+    .var-name {
+      color: var(--node-var-text);
+      font-weight: 700;
+    }
+
+    .var-val {
+      color: var(--accent-cyan);
+    }
+
+    .var-del-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+    }
+
+    .var-del-btn:hover {
+      color: var(--danger);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .add-var-form {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+
+    .add-var-input {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      padding: 0.35rem 0.5rem;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      width: 50%;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .history-item {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .history-item:hover {
+      border-color: var(--primary);
+      background: var(--bg-alt);
+    }
+
+    .history-expr {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .history-res {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 1.5rem 1rem;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    /* ==========================================================================
+       MODAL: GRAMMAR & DOCUMENTATION
+       ========================================================================== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 1.5rem;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      width: 100%;
+      max-width: 860px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalPop 0.2s ease-out;
+    }
+
+    @keyframes modalPop {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .modal-section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 0.4rem;
+    }
+
+    .grammar-bnf {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    /* ==========================================================================
+       FOOTER
+       ========================================================================== */
+    footer {
+      background: var(--bg-alt);
+      border-top: 1px solid var(--card-border);
+      padding: 1.25rem 2rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .footer-highlight {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Tooltip */
+    #nodeTooltip {
+      position: fixed;
+      background: var(--bg-alt);
+      border: 1px solid var(--primary);
+      color: var(--text);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      pointer-events: none;
+      display: none;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="5" r="3"/>
+          <circle cx="6" cy="19" r="3"/>
+          <circle cx="18" cy="19" r="3"/>
+          <path d="M12 8v4m-3 3l-2.5 1.5m6.5-1.5l2.5 1.5"/>
+        </svg>
+      </div>
+      <div class="brand-title">
+        <h1>Expression Evaluator using AST</h1>
+        <p>Compiler Design Lab &bull; Hand-Written Recursive Descent Pipeline</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary btn-sm" id="btnGrammarModal">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Grammar & Reference
+      </button>
+      <button class="btn btn-secondary btn-sm" id="btnThemeToggle" title="Toggle Light/Dark Theme">
+        <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none;"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span id="themeToggleLabel">Light Mode</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Expression Input Card -->
+    <div class="input-card">
+      <div class="input-row">
+        <div class="input-wrapper">
+          <input type="text" id="exprInput" class="expr-input" placeholder="e.g. 3 + 4 * 2, sin(pi/2) + 2^3^2, x = 5 * 3..." autocomplete="off" spellcheck="false" value="3 + 4 * 2">
+          <div id="errorPointerLine" class="error-pointer-container"><span id="errorPointerSpaces"></span><span class="error-pointer-caret">^</span> <span id="errorPointerMsg"></span></div>
+        </div>
+        <button class="btn btn-primary" id="btnEvaluate" title="Evaluate Expression (Enter)">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Evaluate
+        </button>
+        <button class="btn btn-secondary" id="btnClear" title="Clear input">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Clear
+        </button>
+      </div>
+
+      <!-- Quick Example Pills -->
+      <div class="examples-bar">
+        <span class="examples-label">Examples:</span>
+        <button class="example-chip" data-expr="3 + 4 * 2">3 + 4 * 2</button>
+        <button class="example-chip" data-expr="(10 - 2) ^ 2 / 4">(10 - 2) ^ 2 / 4</button>
+        <button class="example-chip" data-expr="-5 + sqrt(16)">-5 + sqrt(16)</button>
+        <button class="example-chip" data-expr="x = 5 * 3">x = 5 * 3</button>
+        <button class="example-chip" data-expr="sin(pi/2) + 2^3^2">sin(pi/2) + 2^3^2</button>
+        <button class="example-chip" data-expr="(3 + 4) * 2">(3 + 4) * 2</button>
+        <button class="example-chip" data-expr="-2^2">-2^2</button>
+        <button class="example-chip" data-expr="sqrt(16) + abs(-3)">sqrt(16) + abs(-3)</button>
+        <button class="example-chip" data-expr="min(10, 4, 8) + max(1, 9)">min(10, 4, 8) + max(1, 9)</button>
+        <button class="example-chip" data-expr="pow(2, 5) % 7">pow(2, 5) % 7</button>
+      </div>
+    </div>
+
+    <!-- Result Banner Card -->
+    <div class="result-card" id="resultCard">
+      <div class="result-info">
+        <div class="result-label" id="resultStatusLabel">Computed Result</div>
+        <div class="result-value-display" id="resultValueDisplay">11</div>
+      </div>
+      <div class="result-meta" id="resultMeta">
+        <span class="meta-chip" id="metaTypeBadge"><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none"><circle cx="12" cy="12" r="10"/></svg> <span id="metaTypeText">Integer</span></span>
+        <span class="meta-chip" id="metaTokensBadge">Tokens: <strong id="metaTokensCount">5</strong></span>
+        <span class="meta-chip" id="metaNodesBadge">AST Nodes: <strong id="metaNodesCount">5</strong></span>
+        <span class="meta-chip" id="metaTimeBadge">Time: <strong id="metaTimeText">0.4 ms</strong></span>
+        <button class="btn btn-secondary btn-sm" id="btnCopyResult" title="Copy result to clipboard">
+          <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+    </div>
+
+    <!-- Workspace: Phases Tabs + Sidebar Stack -->
+    <div class="workspace-grid">
+      <!-- Main Phases Container -->
+      <div class="phases-card">
+        <div class="tabs-header">
+          <button class="tab-btn active" data-tab="tabAst">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="6" cy="19" r="3"/><circle cx="18" cy="19" r="3"/><path d="M12 8v4m-3 3l-2.5 1.5m6.5-1.5l2.5 1.5"/></svg>
+            AST Visualization
+          </button>
+          <button class="tab-btn" data-tab="tabTokens">
+            <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Tokens Table
+          </button>
+          <button class="tab-btn" data-tab="tabTraversals">
+            <svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            Traversals
+          </button>
+          <button class="tab-btn" data-tab="tabStepEval">
+            <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            Step-by-Step Evaluation
+          </button>
+          <button class="tab-btn" data-tab="tabTac">
+            <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Three-Address Code (TAC)
+          </button>
+        </div>
+
+        <!-- TAB 1: AST VISUALIZATION -->
+        <div class="tab-pane active" id="tabAst">
+          <div class="ast-toolbar">
+            <div class="view-toggle">
+              <button class="view-btn active" id="btnViewSvg">Graphical SVG</button>
+              <button class="view-btn" id="btnViewAscii">Indented Text</button>
+              <button class="view-btn" id="btnViewJson">JSON AST</button>
+            </div>
+            <div class="zoom-controls" id="svgZoomControls">
+              <button class="btn btn-secondary btn-sm" id="btnZoomIn" title="Zoom In">+</button>
+              <button class="btn btn-secondary btn-sm" id="btnZoomOut" title="Zoom Out">-</button>
+              <button class="btn btn-secondary btn-sm" id="btnZoomReset" title="Reset View">Reset</button>
+              <button class="btn btn-secondary btn-sm" id="btnZoomFit" title="Fit to Screen">Fit</button>
+            </div>
+          </div>
+
+          <!-- SVG Tree Viewport -->
+          <div class="svg-viewport" id="svgViewport">
+            <svg id="astSvg">
+              <defs>
+                <pattern id="gridPattern" width="24" height="24" patternUnits="userSpaceOnUse">
+                  <path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--svg-grid)" stroke-width="1"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gridPattern)" />
+              <g id="svgContent"></g>
+            </svg>
+          </div>
+
+          <!-- Indented ASCII Tree View -->
+          <div class="code-container" id="asciiViewContainer" style="display: none;">
+            <div class="code-header">
+              <span>ABSTRACT SYNTAX TREE &bull; INDENTED REPRESENTATION</span>
+              <button class="btn btn-secondary btn-sm" id="btnCopyAscii">Copy Tree</button>
+            </div>
+            <pre class="code-box" id="asciiCodeBox"></pre>
+          </div>
+
+          <!-- JSON AST View -->
+          <div class="code-container" id="jsonViewContainer" style="display: none;">
+            <div class="code-header">
+              <span>PARSED AST JSON DATA</span>
+              <button class="btn btn-secondary btn-sm" id="btnCopyJson">Copy JSON</button>
+            </div>
+            <pre class="code-box" id="jsonCodeBox"></pre>
+          </div>
+
+          <!-- Node Type Legend -->
+          <div class="legend-bar" id="astLegend">
+            <div class="legend-item"><span class="legend-dot" style="background:var(--node-bin-border)"></span> BinaryOp (+, -, *, /, %, ^)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--node-un-border)"></span> UnaryOp (+, -)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--node-num-border)"></span> Number</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--node-var-border)"></span> Variable</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--node-fn-border)"></span> Function Call</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--node-assign-border)"></span> Assignment (=)</div>
+          </div>
+        </div>
+
+        <!-- TAB 2: TOKENS TABLE -->
+        <div class="tab-pane" id="tabTokens">
+          <div class="table-container">
+            <table id="tokensTable">
+              <thead>
+                <tr>
+                  <th style="width: 60px;">#</th>
+                  <th>Type</th>
+                  <th>Value</th>
+                  <th>Position</th>
+                  <th>Length</th>
+                </tr>
+              </thead>
+              <tbody id="tokensTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 3: TRAVERSALS -->
+        <div class="tab-pane" id="tabTraversals">
+          <div class="traversals-grid">
+            <div class="traversal-card">
+              <div class="traversal-header">
+                <div class="traversal-title">
+                  <span class="badge-pills" style="background:rgba(99,102,241,0.2); color:var(--primary);">INORDER</span>
+                  Infix Notation (with explicit parentheses)
+                </div>
+                <button class="btn btn-secondary btn-sm" data-copy-target="traversalInorder">Copy</button>
+              </div>
+              <div class="traversal-text" id="traversalInorder">-</div>
+              <div class="traversal-desc">Standard mathematical infix notation showing exact operator precedence via parentheses. Algorithm: Traverse Left Subtree &rarr; Visit Root &rarr; Traverse Right Subtree.</div>
+            </div>
+
+            <div class="traversal-card">
+              <div class="traversal-header">
+                <div class="traversal-title">
+                  <span class="badge-pills" style="background:rgba(168,85,247,0.2); color:var(--accent-purple);">PREORDER</span>
+                  Prefix Notation (Polish Notation)
+                </div>
+                <button class="btn btn-secondary btn-sm" data-copy-target="traversalPreorder">Copy</button>
+              </div>
+              <div class="traversal-text" id="traversalPreorder">-</div>
+              <div class="traversal-desc">Operator precedes operands. Used in Lisp S-expressions and functional expression trees. Algorithm: Visit Root &rarr; Traverse Left Subtree &rarr; Traverse Right Subtree.</div>
+            </div>
+
+            <div class="traversal-card">
+              <div class="traversal-header">
+                <div class="traversal-title">
+                  <span class="badge-pills" style="background:rgba(16,185,129,0.2); color:var(--success);">POSTORDER</span>
+                  Postfix Notation (Reverse Polish Notation / RPN)
+                </div>
+                <button class="btn btn-secondary btn-sm" data-copy-target="traversalPostorder">Copy</button>
+              </div>
+              <div class="traversal-text" id="traversalPostorder">-</div>
+              <div class="traversal-desc">Operands precede operator. Crucial in compiler design: used directly for stack-machine evaluation and bottom-up semantic reduction. Algorithm: Left Subtree &rarr; Right Subtree &rarr; Root.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: STEP-BY-STEP EVALUATION -->
+        <div class="tab-pane" id="tabStepEval">
+          <div class="playback-bar">
+            <div class="playback-controls">
+              <button class="btn btn-primary btn-sm" id="btnAnimPlayPause">
+                <svg id="playIcon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span id="playBtnText">Play Animation</span>
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btnAnimPrev" title="Step Back">&larr; Prev</button>
+              <button class="btn btn-secondary btn-sm" id="btnAnimNext" title="Step Forward">Next &rarr;</button>
+              <button class="btn btn-secondary btn-sm" id="btnAnimReset" title="Reset Steps">Reset</button>
+            </div>
+            <div class="speed-selector">
+              <span>Speed:</span>
+              <select id="animSpeedSelect">
+                <option value="1500">0.5x (Slow)</option>
+                <option value="900" selected>1.0x (Normal)</option>
+                <option value="500">1.5x (Fast)</option>
+                <option value="250">2.0x (Ultra)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+            <table id="stepsTable">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">Step #</th>
+                  <th>Node ID</th>
+                  <th>Sub-Expression</th>
+                  <th>Action / Operation</th>
+                  <th>Evaluated Result</th>
+                </tr>
+              </thead>
+              <tbody id="stepsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 5: THREE-ADDRESS CODE (TAC) -->
+        <div class="tab-pane" id="tabTac">
+          <div class="tac-grid">
+            <div class="code-container">
+              <div class="code-header">
+                <span>INTERMEDIATE CODE &bull; THREE-ADDRESS CODE (TAC)</span>
+                <button class="btn btn-secondary btn-sm" id="btnCopyTac">Copy TAC</button>
+              </div>
+              <pre class="code-box" id="tacCodeBox"></pre>
+            </div>
+            <div class="table-container" style="max-height: 440px; overflow-y: auto;">
+              <table id="quadruplesTable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Op</th>
+                    <th>Arg1</th>
+                    <th>Arg2</th>
+                    <th>Result</th>
+                  </tr>
+                </thead>
+                <tbody id="quadruplesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Symbol Table & History Stack -->
+      <div class="side-stack">
+        <!-- Variable Table (Symbol Table) -->
+        <div class="side-card">
+          <div class="side-card-header">
+            <div class="side-card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Symbol Table (Variables)
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnResetVars" title="Reset all variables to default">Reset</button>
+          </div>
+          <div class="side-card-body">
+            <div class="var-list" id="varListContainer"></div>
+            <form class="add-var-form" id="addVarForm">
+              <input type="text" class="add-var-input" id="newVarName" placeholder="Name (e.g. y)" required pattern="[a-zA-Z_][a-zA-Z0-9_]*">
+              <input type="number" step="any" class="add-var-input" id="newVarVal" placeholder="Value (e.g. 42)" required>
+              <button type="submit" class="btn btn-secondary btn-sm">Set</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Evaluation History -->
+        <div class="side-card">
+          <div class="side-card-header">
+            <div class="side-card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg>
+              Evaluation History
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnClearHistory" title="Clear History">Clear</button>
+          </div>
+          <div class="side-card-body" id="historyListContainer"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Grammar & Reference Modal -->
+  <div class="modal-overlay" id="grammarModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title">BNF Grammar, Precedence & Reference</h2>
+        <button class="btn btn-secondary btn-sm" id="btnCloseModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <h3 class="modal-section-title">Context-Free Grammar (BNF)</h3>
+          <div class="grammar-bnf">
+statement  &rarr; IDENT '=' expr | expr
+expr       &rarr; term (('+' | '-') term)*
+term       &rarr; unary (('*' | '/' | '%') unary)*
+unary      &rarr; ('-' | '+') unary | factor
+factor     &rarr; primary ('^' unary)?           /* right-associative power */
+primary    &rarr; NUMBER
+            | IDENT
+            | IDENT '(' [expr (',' expr)*] ')'
+            | '(' expr ')'
+          </div>
+        </div>
+
+        <div>
+          <h3 class="modal-section-title">Operator Precedence & Associativity Table</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Precedence</th>
+                  <th>Operator</th>
+                  <th>Description</th>
+                  <th>Associativity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>6 (Highest)</strong></td>
+                  <td><code>( )</code>, <code>fn(...)</code></td>
+                  <td>Parentheses, Function calls</td>
+                  <td>Left-to-right</td>
+                </tr>
+                <tr>
+                  <td><strong>5</strong></td>
+                  <td><code>^</code></td>
+                  <td>Exponentiation / Power</td>
+                  <td><strong>Right-to-left</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>4</strong></td>
+                  <td><code>+</code>, <code>-</code></td>
+                  <td>Unary positive, Unary negation</td>
+                  <td><strong>Right-to-left</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>3</strong></td>
+                  <td><code>*</code>, <code>/</code>, <code>%</code></td>
+                  <td>Multiplication, Division, Modulo</td>
+                  <td>Left-to-right</td>
+                </tr>
+                <tr>
+                  <td><strong>2</strong></td>
+                  <td><code>+</code>, <code>-</code></td>
+                  <td>Addition, Subtraction</td>
+                  <td>Left-to-right</td>
+                </tr>
+                <tr>
+                  <td><strong>1 (Lowest)</strong></td>
+                  <td><code>=</code></td>
+                  <td>Assignment to variable</td>
+                  <td>Right-to-left</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="modal-section-title">Supported Functions & Constants</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+            <strong>Constants:</strong> <code>pi</code> (&asymp; 3.14159), <code>e</code> (&asymp; 2.71828)<br>
+            <strong>Trigonometry:</strong> <code>sin(x)</code>, <code>cos(x)</code>, <code>tan(x)</code> (arguments in radians)<br>
+            <strong>Arithmetic & Roots:</strong> <code>sqrt(x)</code>, <code>abs(x)</code>, <code>pow(base, exp)</code><br>
+            <strong>Logarithms:</strong> <code>log(x)</code> (base 10), <code>ln(x)</code> (natural logarithm base e), <code>exp(x)</code> (e<sup>x</sup>)<br>
+            <strong>Rounding:</strong> <code>floor(x)</code>, <code>ceil(x)</code>, <code>round(x)</code><br>
+            <strong>Multi-argument:</strong> <code>min(a, b, ...)</code>, <code>max(a, b, ...)</code>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SVG Tooltip -->
+  <div id="nodeTooltip"></div>
+
+  <!-- Footer -->
+  <footer>
+    <div>Made by <span class="footer-highlight">Sumit Adak</span> &bull; Compiler Design Lab PBL Project</div>
+    <div style="font-size: 0.8rem; color: var(--text-dim);">Pure Vanilla JS &bull; No Frameworks &bull; Hand-crafted Lexer, Parser & Evaluator</div>
+  </footer>
+
+  <!-- ==========================================================================
+       JAVASCRIPT COMPILER IMPLEMENTATION
+       ========================================================================== -->
+  <script>
+    /* ==========================================================================
+       1. TOKEN TYPES & ERROR CLASSES
+       ========================================================================== */
+    const TokenType = {
+      NUMBER: 'NUMBER',
+      IDENT: 'IDENT',
+      PLUS: 'PLUS',
+      MINUS: 'MINUS',
+      MULTIPLY: 'MULTIPLY',
+      DIVIDE: 'DIVIDE',
+      MODULO: 'MODULO',
+      POWER: 'POWER',
+      ASSIGN: 'ASSIGN',
+      LPAREN: 'LPAREN',
+      RPAREN: 'RPAREN',
+      COMMA: 'COMMA',
+      EOF: 'EOF'
+    };
+
+    class CompilerError extends Error {
+      constructor(message, position = null, phase = 'Compiler') {
+        super(message);
+        this.name = phase + 'Error';
+        this.position = position;
+        this.phase = phase;
+      }
+    }
+
+    class LexicalError extends CompilerError {
+      constructor(message, position) {
+        super(message, position, 'Lexical');
+      }
+    }
+
+    class SyntaxErrorCustom extends CompilerError {
+      constructor(message, position) {
+        super(message, position, 'Syntax');
+      }
+    }
+
+    class RuntimeErrorCustom extends CompilerError {
+      constructor(message) {
+        super(message, null, 'Runtime');
+      }
+    }
+
+    class Token {
+      constructor(type, value, position, length = 1) {
+        this.type = type;
+        this.value = value;
+        this.position = position;
+        this.length = length;
+      }
+    }
+
+    /* ==========================================================================
+       2. PHASE 1: LEXER (LEXICAL ANALYZER)
+       ========================================================================== */
+    class Lexer {
+      constructor(input) {
+        this.input = input;
+        this.cursor = 0;
+        this.length = input.length;
+      }
+
+      peek() {
+        return this.cursor < this.length ? this.input[this.cursor] : null;
+      }
+
+      advance() {
+        return this.cursor < this.length ? this.input[this.cursor++] : null;
+      }
+
+      skipWhitespace() {
+        while (this.cursor < this.length && /\s/.test(this.input[this.cursor])) {
+          this.cursor++;
+        }
+      }
+
+      tokenize() {
+        const tokens = [];
+
+        while (this.cursor < this.length) {
+          this.skipWhitespace();
+          if (this.cursor >= this.length) break;
+
+          const startPos = this.cursor;
+          const char = this.peek();
+
+          // Numbers (e.g. 123, 4.5, .5)
+          if (/\d/.test(char) || (char === '.' && this.cursor + 1 < this.length && /\d/.test(this.input[this.cursor + 1]))) {
+            let numStr = '';
+            let hasDot = false;
+            while (this.cursor < this.length) {
+              const c = this.peek();
+              if (/\d/.test(c)) {
+                numStr += this.advance();
+              } else if (c === '.') {
+                if (hasDot) {
+                  throw new LexicalError(`Malformed number with multiple decimal points at position ${this.cursor}`, this.cursor);
+                }
+                hasDot = true;
+                numStr += this.advance();
+              } else {
+                break;
+              }
+            }
+            tokens.push(new Token(TokenType.NUMBER, parseFloat(numStr), startPos, numStr.length));
+            continue;
+          }
+
+          // Identifiers (variable or function names: [a-zA-Z_][a-zA-Z0-9_]*)
+          if (/[a-zA-Z_]/.test(char)) {
+            let ident = '';
+            while (this.cursor < this.length && /[a-zA-Z0-9_]/.test(this.peek())) {
+              ident += this.advance();
+            }
+            tokens.push(new Token(TokenType.IDENT, ident, startPos, ident.length));
+            continue;
+          }
+
+          // Operators & Punctuation
+          switch (char) {
+            case '+':
+              this.advance();
+              tokens.push(new Token(TokenType.PLUS, '+', startPos, 1));
+              break;
+            case '-':
+              this.advance();
+              tokens.push(new Token(TokenType.MINUS, '-', startPos, 1));
+              break;
+            case '*':
+              this.advance();
+              tokens.push(new Token(TokenType.MULTIPLY, '*', startPos, 1));
+              break;
+            case '/':
+              this.advance();
+              tokens.push(new Token(TokenType.DIVIDE, '/', startPos, 1));
+              break;
+            case '%':
+              this.advance();
+              tokens.push(new Token(TokenType.MODULO, '%', startPos, 1));
+              break;
+            case '^':
+              this.advance();
+              tokens.push(new Token(TokenType.POWER, '^', startPos, 1));
+              break;
+            case '=':
+              this.advance();
+              tokens.push(new Token(TokenType.ASSIGN, '=', startPos, 1));
+              break;
+            case '(':
+              this.advance();
+              tokens.push(new Token(TokenType.LPAREN, '(', startPos, 1));
+              break;
+            case ')':
+              this.advance();
+              tokens.push(new Token(TokenType.RPAREN, ')', startPos, 1));
+              break;
+            case ',':
+              this.advance();
+              tokens.push(new Token(TokenType.COMMA, ',', startPos, 1));
+              break;
+            default:
+              throw new LexicalError(`Invalid character '${char}' at position ${startPos}`, startPos);
+          }
+        }
+
+        tokens.push(new Token(TokenType.EOF, 'EOF', this.cursor, 0));
+        return tokens;
+      }
+    }
+
+    /* ==========================================================================
+       3. PHASE 2: PARSER & AST (SYNTAX ANALYZER)
+       ========================================================================== */
+    let globalNodeCounter = 0;
+    function nextNodeId() {
+      return `n${++globalNodeCounter}`;
+    }
+
+    class ASTNode {
+      constructor(type, position) {
+        this.id = nextNodeId();
+        this.type = type;
+        this.position = position;
+      }
+    }
+
+    class NumberNode extends ASTNode {
+      constructor(value, position) {
+        super('Number', position);
+        this.value = value;
+      }
+    }
+
+    class VariableNode extends ASTNode {
+      constructor(name, position) {
+        super('Variable', position);
+        this.name = name;
+      }
+    }
+
+    class BinaryOpNode extends ASTNode {
+      constructor(op, left, right, position) {
+        super('BinaryOp', position);
+        this.op = op;
+        this.left = left;
+        this.right = right;
+      }
+    }
+
+    class UnaryOpNode extends ASTNode {
+      constructor(op, operand, position) {
+        super('UnaryOp', position);
+        this.op = op;
+        this.operand = operand;
+      }
+    }
+
+    class FunctionCallNode extends ASTNode {
+      constructor(name, args, position) {
+        super('FunctionCall', position);
+        this.name = name;
+        this.args = args;
+      }
+    }
+
+    class AssignNode extends ASTNode {
+      constructor(name, value, position) {
+        super('Assign', position);
+        this.name = name;
+        this.value = value;
+      }
+    }
+
+    class Parser {
+      constructor(tokens) {
+        this.tokens = tokens;
+        this.current = 0;
+      }
+
+      peek(offset = 0) {
+        const idx = this.current + offset;
+        return idx < this.tokens.length ? this.tokens[idx] : this.tokens[this.tokens.length - 1];
+      }
+
+      match(...types) {
+        const token = this.peek();
+        if (types.includes(token.type)) {
+          this.current++;
+          return token;
+        }
+        return null;
+      }
+
+      consume(type, expectedMsg) {
+        const token = this.peek();
+        if (token.type === type) {
+          this.current++;
+          return token;
+        }
+        throw new SyntaxErrorCustom(
+          expectedMsg || `Expected '${type}' at position ${token.position}, found '${token.value}'`,
+          token.position
+        );
+      }
+
+      parse() {
+        globalNodeCounter = 0;
+        const stmt = this.statement();
+        if (this.peek().type !== TokenType.EOF) {
+          const tok = this.peek();
+          throw new SyntaxErrorCustom(`Unexpected token '${tok.value}' at position ${tok.position}`, tok.position);
+        }
+        return stmt;
+      }
+
+      // statement → IDENT '=' expr | expr
+      statement() {
+        if (this.peek(0).type === TokenType.IDENT && this.peek(1).type === TokenType.ASSIGN) {
+          const identTok = this.consume(TokenType.IDENT);
+          this.consume(TokenType.ASSIGN);
+          const exprNode = this.expr();
+          return new AssignNode(identTok.value, exprNode, identTok.position);
+        }
+        return this.expr();
+      }
+
+      // expr → term (('+' | '-') term)*
+      expr() {
+        let left = this.term();
+        let opToken;
+        while ((opToken = this.match(TokenType.PLUS, TokenType.MINUS))) {
+          const right = this.term();
+          left = new BinaryOpNode(opToken.value, left, right, opToken.position);
+        }
+        return left;
+      }
+
+      // term → unary (('*' | '/' | '%') unary)*
+      term() {
+        let left = this.unary();
+        let opToken;
+        while ((opToken = this.match(TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.MODULO))) {
+          const right = this.unary();
+          left = new BinaryOpNode(opToken.value, left, right, opToken.position);
+        }
+        return left;
+      }
+
+      // unary → ('-' | '+') unary | factor
+      unary() {
+        const opToken = this.match(TokenType.PLUS, TokenType.MINUS);
+        if (opToken) {
+          const operand = this.unary();
+          return new UnaryOpNode(opToken.value, operand, opToken.position);
+        }
+        return this.factor();
+      }
+
+      // factor → primary ('^' unary)?    (right associative)
+      factor() {
+        const left = this.primary();
+        if (this.match(TokenType.POWER)) {
+          const opToken = this.tokens[this.current - 1];
+          const right = this.unary();
+          return new BinaryOpNode('^', left, right, opToken.position);
+        }
+        return left;
+      }
+
+      // primary → NUMBER | IDENT | IDENT '(' args ')' | '(' expr ')'
+      primary() {
+        const token = this.peek();
+
+        if (this.match(TokenType.NUMBER)) {
+          return new NumberNode(token.value, token.position);
+        }
+
+        if (this.match(TokenType.IDENT)) {
+          // Check for function call
+          if (this.match(TokenType.LPAREN)) {
+            const args = [];
+            if (this.peek().type !== TokenType.RPAREN) {
+              while (true) {
+                args.push(this.expr());
+                if (this.match(TokenType.COMMA)) {
+                  continue;
+                }
+                break;
+              }
+            }
+            this.consume(TokenType.RPAREN, `Expected ')' after function arguments at position ${this.peek().position}`);
+            return new FunctionCallNode(token.value, args, token.position);
+          }
+          return new VariableNode(token.value, token.position);
+        }
+
+        if (this.match(TokenType.LPAREN)) {
+          const node = this.expr();
+          this.consume(TokenType.RPAREN, `Expected ')' at position ${this.peek().position}`);
+          return node;
+        }
+
+        if (token.type === TokenType.EOF) {
+          throw new SyntaxErrorCustom(`Unexpected end of expression at position ${token.position}`, token.position);
+        }
+
+        throw new SyntaxErrorCustom(
+          `Unexpected token '${token.value}' at position ${token.position}. Expected number, identifier, or '('`,
+          token.position
+        );
+      }
+    }
+
+    /* ==========================================================================
+       4. PHASE 3: EVALUATOR & ENVIRONMENT
+       ========================================================================== */
+    class Environment {
+      constructor() {
+        this.variables = new Map();
+        this.loadFromStorage();
+      }
+
+      loadFromStorage() {
+        try {
+          const saved = localStorage.getItem('compiler_ast_vars');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            this.variables = new Map(Object.entries(parsed));
+          } else {
+            this.resetDefaults();
+          }
+        } catch (e) {
+          this.resetDefaults();
+        }
+      }
+
+      saveToStorage() {
+        try {
+          const obj = Object.fromEntries(this.variables);
+          localStorage.setItem('compiler_ast_vars', JSON.stringify(obj));
+        } catch (e) {}
+      }
+
+      resetDefaults() {
+        this.variables.clear();
+        this.variables.set('pi', Math.PI);
+        this.variables.set('e', Math.E);
+        this.saveToStorage();
+      }
+
+      get(name) {
+        if (this.variables.has(name)) {
+          return this.variables.get(name);
+        }
+        throw new RuntimeErrorCustom(`Undefined variable '${name}'`);
+      }
+
+      set(name, value) {
+        this.variables.set(name, value);
+        this.saveToStorage();
+        return value;
+      }
+
+      delete(name) {
+        this.variables.delete(name);
+        this.saveToStorage();
+      }
+
+      getAll() {
+        return Array.from(this.variables.entries());
+      }
+    }
+
+    const BUILT_IN_FUNCTIONS = {
+      sin: { fn: (x) => Math.sin(x), minArgs: 1, maxArgs: 1 },
+      cos: { fn: (x) => Math.cos(x), minArgs: 1, maxArgs: 1 },
+      tan: { fn: (x) => Math.tan(x), minArgs: 1, maxArgs: 1 },
+      sqrt: {
+        fn: (x) => {
+          if (x < 0) throw new RuntimeErrorCustom(`Cannot compute square root of negative number: ${x}`);
+          return Math.sqrt(x);
+        },
+        minArgs: 1,
+        maxArgs: 1
+      },
+      abs: { fn: (x) => Math.abs(x), minArgs: 1, maxArgs: 1 },
+      log: {
+        fn: (x) => {
+          if (x <= 0) throw new RuntimeErrorCustom(`Logarithm base 10 undefined for non-positive number: ${x}`);
+          return Math.log10(x);
+        },
+        minArgs: 1,
+        maxArgs: 1
+      },
+      ln: {
+        fn: (x) => {
+          if (x <= 0) throw new RuntimeErrorCustom(`Natural logarithm undefined for non-positive number: ${x}`);
+          return Math.log(x);
+        },
+        minArgs: 1,
+        maxArgs: 1
+      },
+      exp: { fn: (x) => Math.exp(x), minArgs: 1, maxArgs: 1 },
+      floor: { fn: (x) => Math.floor(x), minArgs: 1, maxArgs: 1 },
+      ceil: { fn: (x) => Math.ceil(x), minArgs: 1, maxArgs: 1 },
+      round: { fn: (x) => Math.round(x), minArgs: 1, maxArgs: 1 },
+      min: { fn: (...args) => Math.min(...args), minArgs: 1, maxArgs: Infinity },
+      max: { fn: (...args) => Math.max(...args), minArgs: 1, maxArgs: Infinity },
+      pow: { fn: (b, e) => Math.pow(b, e), minArgs: 2, maxArgs: 2 }
+    };
+
+    class Evaluator {
+      constructor(env) {
+        this.env = env;
+        this.steps = [];
+      }
+
+      evaluate(ast) {
+        this.steps = [];
+        const result = this.evalNode(ast);
+        return {
+          result,
+          steps: this.steps
+        };
+      }
+
+      evalNode(node) {
+        switch (node.type) {
+          case 'Number': {
+            this.recordStep(node, `${node.value}`, 'Constant evaluation', node.value);
+            return node.value;
+          }
+
+          case 'Variable': {
+            const val = this.env.get(node.name);
+            this.recordStep(node, node.name, `Variable lookup: ${node.name} &rarr; ${val}`, val);
+            return val;
+          }
+
+          case 'Assign': {
+            const val = this.evalNode(node.value);
+            this.env.set(node.name, val);
+            this.recordStep(node, `${node.name} = ${val}`, `Assignment: store ${val} in ${node.name}`, val);
+            return val;
+          }
+
+          case 'UnaryOp': {
+            const operandVal = this.evalNode(node.operand);
+            let res;
+            if (node.op === '+') {
+              res = +operandVal;
+            } else if (node.op === '-') {
+              res = -operandVal;
+            } else {
+              throw new RuntimeErrorCustom(`Unknown unary operator: ${node.op}`);
+            }
+            res = this.formatFloat(res);
+            this.recordStep(node, `${node.op}(${operandVal})`, `Unary ${node.op} application`, res);
+            return res;
+          }
+
+          case 'BinaryOp': {
+            const leftVal = this.evalNode(node.left);
+            const rightVal = this.evalNode(node.right);
+            let res;
+            switch (node.op) {
+              case '+':
+                res = leftVal + rightVal;
+                break;
+              case '-':
+                res = leftVal - rightVal;
+                break;
+              case '*':
+                res = leftVal * rightVal;
+                break;
+              case '/':
+                if (rightVal === 0) throw new RuntimeErrorCustom('Division by zero');
+                res = leftVal / rightVal;
+                break;
+              case '%':
+                if (rightVal === 0) throw new RuntimeErrorCustom('Modulo by zero');
+                res = leftVal % rightVal;
+                break;
+              case '^':
+                res = Math.pow(leftVal, rightVal);
+                break;
+              default:
+                throw new RuntimeErrorCustom(`Unknown binary operator: ${node.op}`);
+            }
+            res = this.formatFloat(res);
+            this.recordStep(node, `${leftVal} ${node.op} ${rightVal}`, `Binary ${node.op} operation`, res);
+            return res;
+          }
+
+          case 'FunctionCall': {
+            const fnDef = BUILT_IN_FUNCTIONS[node.name.toLowerCase()];
+            if (!fnDef) {
+              throw new RuntimeErrorCustom(`Unknown function '${node.name}'`);
+            }
+            const evaluatedArgs = node.args.map(arg => this.evalNode(arg));
+            if (evaluatedArgs.length < fnDef.minArgs) {
+              throw new RuntimeErrorCustom(
+                `Function '${node.name}' expects at least ${fnDef.minArgs} argument(s), but got ${evaluatedArgs.length}`
+              );
+            }
+            if (evaluatedArgs.length > fnDef.maxArgs) {
+              throw new RuntimeErrorCustom(
+                `Function '${node.name}' expects at most ${fnDef.maxArgs} argument(s), but got ${evaluatedArgs.length}`
+              );
+            }
+            let res = fnDef.fn(...evaluatedArgs);
+            res = this.formatFloat(res);
+            this.recordStep(node, `${node.name}(${evaluatedArgs.join(', ')})`, `Call built-in ${node.name}()`, res);
+            return res;
+          }
+
+          default:
+            throw new RuntimeErrorCustom(`Unknown AST node type: ${node.type}`);
+        }
+      }
+
+      recordStep(node, subExpr, action, result) {
+        this.steps.push({
+          stepNumber: this.steps.length + 1,
+          nodeId: node.id,
+          nodeType: node.type,
+          subExpr,
+          action,
+          result
+        });
+      }
+
+      formatFloat(val) {
+        if (typeof val !== 'number') return val;
+        if (Number.isInteger(val)) return val;
+        return parseFloat(val.toFixed(10));
+      }
+    }
+
+    /* ==========================================================================
+       5. PHASE 4: TRAVERSALS
+       ========================================================================== */
+    class Traversals {
+      static inorder(node) {
+        if (!node) return '';
+        switch (node.type) {
+          case 'Number': return String(node.value);
+          case 'Variable': return node.name;
+          case 'Assign': return `${node.name} = ${Traversals.inorder(node.value)}`;
+          case 'UnaryOp': return `(${node.op}${Traversals.inorder(node.operand)})`;
+          case 'BinaryOp': return `(${Traversals.inorder(node.left)} ${node.op} ${Traversals.inorder(node.right)})`;
+          case 'FunctionCall': return `${node.name}(${node.args.map(a => Traversals.inorder(a)).join(', ')})`;
+          default: return '';
+        }
+      }
+
+      static preorder(node) {
+        if (!node) return '';
+        switch (node.type) {
+          case 'Number': return String(node.value);
+          case 'Variable': return node.name;
+          case 'Assign': return `= ${node.name} ${Traversals.preorder(node.value)}`;
+          case 'UnaryOp': return `${node.op} ${Traversals.preorder(node.operand)}`;
+          case 'BinaryOp': return `${node.op} ${Traversals.preorder(node.left)} ${Traversals.preorder(node.right)}`;
+          case 'FunctionCall': return `${node.name} ${node.args.map(a => Traversals.preorder(a)).join(' ')}`;
+          default: return '';
+        }
+      }
+
+      static postorder(node) {
+        if (!node) return '';
+        switch (node.type) {
+          case 'Number': return String(node.value);
+          case 'Variable': return node.name;
+          case 'Assign': return `${Traversals.postorder(node.value)} ${node.name} =`;
+          case 'UnaryOp': return `${Traversals.postorder(node.operand)} ${node.op}`;
+          case 'BinaryOp': return `${Traversals.postorder(node.left)} ${Traversals.postorder(node.right)} ${node.op}`;
+          case 'FunctionCall': return `${node.args.map(a => Traversals.postorder(a)).join(' ')} ${node.name}()`;
+          default: return '';
+        }
+      }
+    }
+
+    /* ==========================================================================
+       6. PHASE 5: THREE-ADDRESS CODE (TAC) GENERATOR
+       ========================================================================== */
+    class TACGenerator {
+      constructor() {
+        this.tempCounter = 0;
+        this.instructions = [];
+      }
+
+      newTemp() {
+        return `t${++this.tempCounter}`;
+      }
+
+      generate(ast) {
+        this.tempCounter = 0;
+        this.instructions = [];
+        const finalPlace = this.genNode(ast);
+        return {
+          instructions: this.instructions,
+          finalPlace
+        };
+      }
+
+      genNode(node) {
+        switch (node.type) {
+          case 'Number':
+            return String(node.value);
+
+          case 'Variable':
+            return node.name;
+
+          case 'Assign': {
+            const valPlace = this.genNode(node.value);
+            this.instructions.push({
+              target: node.name,
+              op: '=',
+              arg1: valPlace,
+              arg2: null,
+              text: `${node.name} = ${valPlace}`
+            });
+            return node.name;
+          }
+
+          case 'UnaryOp': {
+            const operandPlace = this.genNode(node.operand);
+            const temp = this.newTemp();
+            this.instructions.push({
+              target: temp,
+              op: node.op,
+              arg1: operandPlace,
+              arg2: null,
+              text: `${temp} = ${node.op}${operandPlace}`
+            });
+            return temp;
+          }
+
+          case 'BinaryOp': {
+            const leftPlace = this.genNode(node.left);
+            const rightPlace = this.genNode(node.right);
+            const temp = this.newTemp();
+            this.instructions.push({
+              target: temp,
+              op: node.op,
+              arg1: leftPlace,
+              arg2: rightPlace,
+              text: `${temp} = ${leftPlace} ${node.op} ${rightPlace}`
+            });
+            return temp;
+          }
+
+          case 'FunctionCall': {
+            const argPlaces = node.args.map(arg => this.genNode(arg));
+            for (const argPlace of argPlaces) {
+              this.instructions.push({
+                target: null,
+                op: 'param',
+                arg1: argPlace,
+                arg2: null,
+                text: `param ${argPlace}`
+              });
+            }
+            const temp = this.newTemp();
+            this.instructions.push({
+              target: temp,
+              op: 'call',
+              arg1: node.name,
+              arg2: argPlaces.length,
+              text: `${temp} = call ${node.name}, ${argPlaces.length}`
+            });
+            return temp;
+          }
+
+          default:
+            return '';
+        }
+      }
+    }
+
+    /* ==========================================================================
+       7. ASCII & JSON AST RENDERERS
+       ========================================================================== */
+    class TreeTextRenderer {
+      static toAscii(node, prefix = '', isLast = true) {
+        if (!node) return '';
+        let result = prefix;
+        result += isLast ? '└── ' : '├── ';
+
+        let label = '';
+        switch (node.type) {
+          case 'Number': label = `Number: ${node.value}`; break;
+          case 'Variable': label = `Variable: ${node.name}`; break;
+          case 'BinaryOp': label = `BinaryOp: '${node.op}'`; break;
+          case 'UnaryOp': label = `UnaryOp: '${node.op}'`; break;
+          case 'FunctionCall': label = `FunctionCall: ${node.name}()`; break;
+          case 'Assign': label = `Assign: ${node.name} =`; break;
+        }
+        result += `[${node.id}] ${label}\n`;
+
+        const childPrefix = prefix + (isLast ? '    ' : '│   ');
+        const children = TreeLayout.getChildren(node);
+
+        for (let i = 0; i < children.length; i++) {
+          result += TreeTextRenderer.toAscii(children[i], childPrefix, i === children.length - 1);
+        }
+        return result;
+      }
+
+      static toJson(node) {
+        function clean(n) {
+          if (!n) return null;
+          const copy = { id: n.id, type: n.type, position: n.position };
+          if (n.value !== undefined) copy.value = n.value;
+          if (n.name !== undefined) copy.name = n.name;
+          if (n.op !== undefined) copy.op = n.op;
+          if (n.left) copy.left = clean(n.left);
+          if (n.right) copy.right = clean(n.right);
+          if (n.operand) copy.operand = clean(n.operand);
+          if (n.args) copy.args = n.args.map(clean);
+          return copy;
+        }
+        return JSON.stringify(clean(node), null, 2);
+      }
+    }
+
+    /* ==========================================================================
+       8. SVG TREE TIDY LAYOUT & INTERACTIVE RENDERER
+       ========================================================================== */
+    class TreeLayout {
+      static getChildren(node) {
+        if (!node) return [];
+        switch (node.type) {
+          case 'BinaryOp': return [node.left, node.right];
+          case 'UnaryOp': return [node.operand];
+          case 'FunctionCall': return node.args;
+          case 'Assign': return [node.value];
+          default: return [];
+        }
+      }
+
+      static compute(root, nodeWidth = 74, nodeHeight = 44, hGap = 24, vGap = 84) {
+        const minCellWidth = nodeWidth + hGap;
+
+        function measure(node, depth = 0) {
+          node.depth = depth;
+          const children = TreeLayout.getChildren(node);
+          node._children = children;
+
+          if (children.length === 0) {
+            node._subtreeWidth = minCellWidth;
+            return;
+          }
+
+          let sumWidth = 0;
+          for (const child of children) {
+            measure(child, depth + 1);
+            sumWidth += child._subtreeWidth;
+          }
+          node._subtreeWidth = Math.max(minCellWidth, sumWidth);
+        }
+
+        function assign(node, leftBound) {
+          const children = node._children;
+          node.y = 50 + node.depth * vGap;
+
+          if (children.length === 0) {
+            node.x = leftBound + node._subtreeWidth / 2;
+            return;
+          }
+
+          let curLeft = leftBound;
+          const totalChildWidth = children.reduce((s, c) => s + c._subtreeWidth, 0);
+          if (totalChildWidth < node._subtreeWidth) {
+            curLeft += (node._subtreeWidth - totalChildWidth) / 2;
+          }
+
+          for (const child of children) {
+            assign(child, curLeft);
+            curLeft += child._subtreeWidth;
+          }
+
+          node.x = (children[0].x + children[children.length - 1].x) / 2;
+        }
+
+        measure(root, 0);
+        assign(root, 20);
+
+        const nodes = [];
+        const edges = [];
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+        function collect(node) {
+          nodes.push(node);
+          minX = Math.min(minX, node.x - nodeWidth / 2);
+          maxX = Math.max(maxX, node.x + nodeWidth / 2);
+          minY = Math.min(minY, node.y - nodeHeight / 2);
+          maxY = Math.max(maxY, node.y + nodeHeight / 2);
+
+          for (const child of node._children) {
+            edges.push({ from: node, to: child });
+            collect(child);
+          }
+        }
+        collect(root);
+
+        return {
+          nodes,
+          edges,
+          bounds: {
+            minX, maxX, minY, maxY,
+            width: maxX - minX + 60,
+            height: maxY - minY + 60
+          }
+        };
+      }
+    }
+
+    class SVGTreeViewer {
+      constructor(svgId, viewportId) {
+        this.svg = document.getElementById(svgId);
+        this.viewport = document.getElementById(viewportId);
+        this.contentGroup = document.getElementById('svgContent');
+        this.tooltip = document.getElementById('nodeTooltip');
+
+        this.scale = 1;
+        this.translateX = 0;
+        this.translateY = 0;
+        this.isDragging = false;
+        this.startX = 0;
+        this.startY = 0;
+
+        this.initPanZoom();
+      }
+
+      initPanZoom() {
+        this.viewport.addEventListener('mousedown', (e) => {
+          if (e.target.closest('.ast-node')) return;
+          this.isDragging = true;
+          this.startX = e.clientX - this.translateX;
+          this.startY = e.clientY - this.translateY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!this.isDragging) return;
+          this.translateX = e.clientX - this.startX;
+          this.translateY = e.clientY - this.startY;
+          this.updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+          this.isDragging = false;
+        });
+
+        this.viewport.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+          const rect = this.viewport.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          const newScale = Math.min(Math.max(0.25, this.scale * zoomFactor), 4.0);
+          this.translateX = mouseX - (mouseX - this.translateX) * (newScale / this.scale);
+          this.translateY = mouseY - (mouseY - this.translateY) * (newScale / this.scale);
+          this.scale = newScale;
+          this.updateTransform();
+        });
+      }
+
+      updateTransform() {
+        this.contentGroup.setAttribute(
+          'transform',
+          `translate(${this.translateX}, ${this.translateY}) scale(${this.scale})`
+        );
+      }
+
+      render(layoutResult) {
+        this.contentGroup.innerHTML = '';
+        if (!layoutResult || layoutResult.nodes.length === 0) return;
+
+        const { nodes, edges, bounds } = layoutResult;
+        const nodeW = 76;
+        const nodeH = 44;
+
+        // Draw Edges (smooth bezier paths)
+        edges.forEach(edge => {
+          const fromX = edge.from.x;
+          const fromY = edge.from.y + nodeH / 2;
+          const toX = edge.to.x;
+          const toY = edge.to.y - nodeH / 2;
+          const midY = (fromY + toY) / 2;
+
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', `M ${fromX} ${fromY} C ${fromX} ${midY}, ${toX} ${midY}, ${toX} ${toY}`);
+          path.setAttribute('class', 'tree-edge');
+          path.setAttribute('data-edge-from', edge.from.id);
+          path.setAttribute('data-edge-to', edge.to.id);
+          this.contentGroup.appendChild(path);
+        });
+
+        // Draw Nodes
+        nodes.forEach(node => {
+          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          g.setAttribute('class', `ast-node node-${node.type}`);
+          g.setAttribute('id', `svg-node-${node.id}`);
+          g.setAttribute('data-node-id', node.id);
+          g.setAttribute('transform', `translate(${node.x - nodeW / 2}, ${node.y - nodeH / 2})`);
+
+          // Rounded Rectangle
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('width', nodeW);
+          rect.setAttribute('height', nodeH);
+          rect.setAttribute('rx', 8);
+          rect.setAttribute('ry', 8);
+
+          // Type badge text
+          const typeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          typeText.setAttribute('x', nodeW / 2);
+          typeText.setAttribute('y', 12);
+          typeText.setAttribute('class', 'node-type-label');
+          typeText.textContent = this.getTypeBadge(node);
+
+          // Main Value/Operator text
+          const mainText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          mainText.setAttribute('x', nodeW / 2);
+          mainText.setAttribute('y', 28);
+          mainText.setAttribute('class', 'node-main-label');
+          mainText.textContent = this.getMainLabel(node);
+
+          g.appendChild(rect);
+          g.appendChild(typeText);
+          g.appendChild(mainText);
+
+          // Hover Tooltip
+          g.addEventListener('mouseenter', (e) => {
+            this.tooltip.style.display = 'block';
+            this.tooltip.innerHTML = `<strong>${node.type} [${node.id}]</strong><br>Label: ${this.getMainLabel(node)}<br>Position: ${node.position ?? 'N/A'}`;
+          });
+          g.addEventListener('mousemove', (e) => {
+            this.tooltip.style.left = (e.clientX + 14) + 'px';
+            this.tooltip.style.top = (e.clientY + 14) + 'px';
+          });
+          g.addEventListener('mouseleave', () => {
+            this.tooltip.style.display = 'none';
+          });
+
+          this.contentGroup.appendChild(g);
+        });
+
+        this.fitToScreen(bounds);
+      }
+
+      getTypeBadge(node) {
+        switch (node.type) {
+          case 'BinaryOp': return 'BIN-OP';
+          case 'UnaryOp': return 'UNARY';
+          case 'Number': return 'NUM';
+          case 'Variable': return 'VAR';
+          case 'FunctionCall': return 'FN';
+          case 'Assign': return 'ASSIGN';
+          default: return node.type;
+        }
+      }
+
+      getMainLabel(node) {
+        switch (node.type) {
+          case 'BinaryOp': return node.op;
+          case 'UnaryOp': return `${node.op} (un)`;
+          case 'Number': return String(node.value);
+          case 'Variable': return node.name;
+          case 'FunctionCall': return `${node.name}()`;
+          case 'Assign': return `${node.name} =`;
+          default: return '';
+        }
+      }
+
+      fitToScreen(bounds) {
+        const vpRect = this.viewport.getBoundingClientRect();
+        const vpW = vpRect.width || 700;
+        const vpH = vpRect.height || 480;
+
+        const padding = 50;
+        const scaleX = (vpW - padding * 2) / bounds.width;
+        const scaleY = (vpH - padding * 2) / bounds.height;
+        this.scale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.4), 1.3);
+
+        const treeCenterX = bounds.minX + bounds.width / 2;
+        const treeTopY = bounds.minY;
+
+        this.translateX = (vpW / 2) - (treeCenterX * this.scale);
+        this.translateY = 35;
+        this.updateTransform();
+      }
+
+      resetView(bounds) {
+        this.fitToScreen(bounds);
+      }
+
+      highlightNode(nodeId, intermediateVal = null) {
+        // Clear previous highlights
+        document.querySelectorAll('.ast-node.is-active').forEach(el => el.classList.remove('is-active'));
+        document.querySelectorAll('.floating-result-badge').forEach(el => el.remove());
+
+        if (!nodeId) return;
+        const target = document.getElementById(`svg-node-${nodeId}`);
+        if (!target) return;
+
+        target.classList.add('is-active');
+
+        // Add a floating result tag above the node if intermediate value provided
+        if (intermediateVal !== null && intermediateVal !== undefined) {
+          const badgeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          badgeG.setAttribute('class', 'floating-result-badge');
+          badgeG.setAttribute('transform', 'translate(38, -12)');
+
+          const badgeRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          badgeRect.setAttribute('x', -30);
+          badgeRect.setAttribute('y', -10);
+          badgeRect.setAttribute('width', 60);
+          badgeRect.setAttribute('height', 20);
+          badgeRect.setAttribute('rx', 4);
+          badgeRect.setAttribute('fill', '#06b6d4');
+
+          const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          badgeText.setAttribute('x', 0);
+          badgeText.setAttribute('y', 4);
+          badgeText.setAttribute('text-anchor', 'middle');
+          badgeText.setAttribute('font-size', '10');
+          badgeText.setAttribute('font-weight', 'bold');
+          badgeText.setAttribute('fill', '#090d16');
+          badgeText.textContent = `&rarr; ${intermediateVal}`.replace('&rarr;', '→');
+
+          badgeG.appendChild(badgeRect);
+          badgeG.appendChild(badgeText);
+          target.appendChild(badgeG);
+        }
+      }
+    }
+
+    /* ==========================================================================
+       9. STEP-BY-STEP ANIMATION CONTROLLER
+       ========================================================================== */
+    class AnimationController {
+      constructor(viewer) {
+        this.viewer = viewer;
+        this.steps = [];
+        this.currentIndex = -1;
+        this.timer = null;
+        this.speed = 900;
+        this.isPlaying = false;
+      }
+
+      setSteps(steps) {
+        this.stop();
+        this.steps = steps;
+        this.currentIndex = -1;
+        this.viewer.highlightNode(null);
+      }
+
+      play() {
+        if (this.steps.length === 0) return;
+        this.isPlaying = true;
+        this.updatePlayBtnUI();
+
+        if (this.currentIndex >= this.steps.length - 1) {
+          this.currentIndex = -1;
+        }
+
+        this.timer = setInterval(() => {
+          if (this.currentIndex < this.steps.length - 1) {
+            this.stepForward();
+          } else {
+            this.stop();
+          }
+        }, this.speed);
+      }
+
+      pause() {
+        this.isPlaying = false;
+        clearInterval(this.timer);
+        this.timer = null;
+        this.updatePlayBtnUI();
+      }
+
+      stop() {
+        this.pause();
+      }
+
+      stepForward() {
+        if (this.currentIndex < this.steps.length - 1) {
+          this.currentIndex++;
+          this.applyStep(this.currentIndex);
+        }
+      }
+
+      stepBack() {
+        if (this.currentIndex > 0) {
+          this.currentIndex--;
+          this.applyStep(this.currentIndex);
+        } else if (this.currentIndex === 0) {
+          this.currentIndex = -1;
+          this.viewer.highlightNode(null);
+          this.highlightTableRow(null);
+        }
+      }
+
+      reset() {
+        this.stop();
+        this.currentIndex = -1;
+        this.viewer.highlightNode(null);
+        this.highlightTableRow(null);
+      }
+
+      applyStep(index) {
+        const step = this.steps[index];
+        if (!step) return;
+
+        this.viewer.highlightNode(step.nodeId, step.result);
+        this.highlightTableRow(index);
+      }
+
+      highlightTableRow(index) {
+        document.querySelectorAll('#stepsTableBody tr').forEach(tr => tr.classList.remove('active-step-row'));
+        if (index === null || index < 0) return;
+
+        const row = document.getElementById(`step-row-${index}`);
+        if (row) {
+          row.classList.add('active-step-row');
+          row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+
+      setSpeed(ms) {
+        this.speed = ms;
+        if (this.isPlaying) {
+          this.pause();
+          this.play();
+        }
+      }
+
+      updatePlayBtnUI() {
+        const btnText = document.getElementById('playBtnText');
+        const playIcon = document.getElementById('playIcon');
+        if (this.isPlaying) {
+          btnText.textContent = 'Pause';
+          playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+        } else {
+          btnText.textContent = 'Play Animation';
+          playIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+        }
+      }
+    }
+
+    /* ==========================================================================
+       10. APPLICATION UI CONTROLLER
+       ========================================================================== */
+    class AppController {
+      constructor() {
+        this.env = new Environment();
+        this.viewer = new SVGTreeViewer('astSvg', 'svgViewport');
+        this.animController = new AnimationController(this.viewer);
+
+        this.currentAST = null;
+        this.currentLayout = null;
+        this.history = [];
+
+        this.initDOM();
+        this.loadHistory();
+        this.renderVariableTable();
+        this.evaluateCurrentInput();
+      }
+
+      initDOM() {
+        // Theme toggle
+        document.getElementById('btnThemeToggle').addEventListener('click', () => this.toggleTheme());
+
+        // Modal
+        document.getElementById('btnGrammarModal').addEventListener('click', () => {
+          document.getElementById('grammarModal').classList.add('active');
+        });
+        document.getElementById('btnCloseModal').addEventListener('click', () => {
+          document.getElementById('grammarModal').classList.remove('active');
+        });
+        document.getElementById('grammarModal').addEventListener('click', (e) => {
+          if (e.target.id === 'grammarModal') document.getElementById('grammarModal').classList.remove('active');
+        });
+
+        // Evaluate & Clear
+        document.getElementById('btnEvaluate').addEventListener('click', () => this.evaluateCurrentInput());
+        document.getElementById('btnClear').addEventListener('click', () => {
+          document.getElementById('exprInput').value = '';
+          document.getElementById('exprInput').focus();
+          this.hideErrorPointer();
+        });
+        document.getElementById('exprInput').addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            this.evaluateCurrentInput();
+          }
+        });
+
+        // Example Chips
+        document.querySelectorAll('.example-chip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            document.getElementById('exprInput').value = chip.dataset.expr;
+            this.evaluateCurrentInput();
+          });
+        });
+
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            const targetPane = document.getElementById(btn.dataset.tab);
+            if (targetPane) targetPane.classList.add('active');
+          });
+        });
+
+        // AST View Toggles (SVG / ASCII / JSON)
+        document.getElementById('btnViewSvg').addEventListener('click', () => this.switchAstView('svg'));
+        document.getElementById('btnViewAscii').addEventListener('click', () => this.switchAstView('ascii'));
+        document.getElementById('btnViewJson').addEventListener('click', () => this.switchAstView('json'));
+
+        // Zoom Controls
+        document.getElementById('btnZoomIn').addEventListener('click', () => {
+          this.viewer.scale = Math.min(4.0, this.viewer.scale * 1.2);
+          this.viewer.updateTransform();
+        });
+        document.getElementById('btnZoomOut').addEventListener('click', () => {
+          this.viewer.scale = Math.max(0.25, this.viewer.scale * 0.83);
+          this.viewer.updateTransform();
+        });
+        document.getElementById('btnZoomReset').addEventListener('click', () => {
+          if (this.currentLayout) this.viewer.resetView(this.currentLayout.bounds);
+        });
+        document.getElementById('btnZoomFit').addEventListener('click', () => {
+          if (this.currentLayout) this.viewer.fitToScreen(this.currentLayout.bounds);
+        });
+
+        // Animation Player Controls
+        document.getElementById('btnAnimPlayPause').addEventListener('click', () => {
+          if (this.animController.isPlaying) {
+            this.animController.pause();
+          } else {
+            this.animController.play();
+          }
+        });
+        document.getElementById('btnAnimNext').addEventListener('click', () => this.animController.stepForward());
+        document.getElementById('btnAnimPrev').addEventListener('click', () => this.animController.stepBack());
+        document.getElementById('btnAnimReset').addEventListener('click', () => this.animController.reset());
+        document.getElementById('animSpeedSelect').addEventListener('change', (e) => {
+          this.animController.setSpeed(parseInt(e.target.value, 10));
+        });
+
+        // Copy Buttons
+        document.getElementById('btnCopyResult').addEventListener('click', () => {
+          const val = document.getElementById('resultValueDisplay').textContent;
+          navigator.clipboard.writeText(val);
+          this.flashButton(document.getElementById('btnCopyResult'), 'Copied!');
+        });
+        document.getElementById('btnCopyAscii').addEventListener('click', () => {
+          navigator.clipboard.writeText(document.getElementById('asciiCodeBox').textContent);
+          this.flashButton(document.getElementById('btnCopyAscii'), 'Copied!');
+        });
+        document.getElementById('btnCopyJson').addEventListener('click', () => {
+          navigator.clipboard.writeText(document.getElementById('jsonCodeBox').textContent);
+          this.flashButton(document.getElementById('btnCopyJson'), 'Copied!');
+        });
+        document.getElementById('btnCopyTac').addEventListener('click', () => {
+          navigator.clipboard.writeText(document.getElementById('tacCodeBox').textContent);
+          this.flashButton(document.getElementById('btnCopyTac'), 'Copied!');
+        });
+
+        document.querySelectorAll('[data-copy-target]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const el = document.getElementById(btn.dataset.copyTarget);
+            if (el) {
+              navigator.clipboard.writeText(el.textContent);
+              this.flashButton(btn, 'Copied!');
+            }
+          });
+        });
+
+        // Variable Table Form
+        document.getElementById('addVarForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const name = document.getElementById('newVarName').value.trim();
+          const val = parseFloat(document.getElementById('newVarVal').value);
+          if (name && !isNaN(val)) {
+            this.env.set(name, val);
+            this.renderVariableTable();
+            document.getElementById('newVarName').value = '';
+            document.getElementById('newVarVal').value = '';
+          }
+        });
+        document.getElementById('btnResetVars').addEventListener('click', () => {
+          this.env.resetDefaults();
+          this.renderVariableTable();
+        });
+
+        // History Clear
+        document.getElementById('btnClearHistory').addEventListener('click', () => {
+          this.history = [];
+          localStorage.removeItem('compiler_ast_history');
+          this.renderHistory();
+        });
+      }
+
+      flashButton(btn, msg) {
+        const orig = btn.innerHTML;
+        btn.textContent = msg;
+        setTimeout(() => { btn.innerHTML = orig; }, 1500);
+      }
+
+      toggleTheme() {
+        const body = document.body;
+        const isDark = body.getAttribute('data-theme') === 'dark';
+        const newTheme = isDark ? 'light' : 'dark';
+        body.setAttribute('data-theme', newTheme);
+        document.getElementById('themeToggleLabel').textContent = isDark ? 'Dark Mode' : 'Light Mode';
+        document.getElementById('themeIconMoon').style.display = isDark ? 'none' : 'block';
+        document.getElementById('themeIconSun').style.display = isDark ? 'block' : 'none';
+        localStorage.setItem('compiler_theme', newTheme);
+      }
+
+      switchAstView(mode) {
+        ['btnViewSvg', 'btnViewAscii', 'btnViewJson'].forEach(id => document.getElementById(id).classList.remove('active'));
+        document.getElementById('svgViewport').style.display = 'none';
+        document.getElementById('asciiViewContainer').style.display = 'none';
+        document.getElementById('jsonViewContainer').style.display = 'none';
+        document.getElementById('svgZoomControls').style.display = 'none';
+        document.getElementById('astLegend').style.display = 'none';
+
+        if (mode === 'svg') {
+          document.getElementById('btnViewSvg').classList.add('active');
+          document.getElementById('svgViewport').style.display = 'block';
+          document.getElementById('svgZoomControls').style.display = 'flex';
+          document.getElementById('astLegend').style.display = 'flex';
+        } else if (mode === 'ascii') {
+          document.getElementById('btnViewAscii').classList.add('active');
+          document.getElementById('asciiViewContainer').style.display = 'flex';
+        } else if (mode === 'json') {
+          document.getElementById('btnViewJson').classList.add('active');
+          document.getElementById('jsonViewContainer').style.display = 'flex';
+        }
+      }
+
+      showErrorPointer(pos, msg) {
+        const container = document.getElementById('errorPointerLine');
+        const spacesSpan = document.getElementById('errorPointerSpaces');
+        const msgSpan = document.getElementById('errorPointerMsg');
+
+        const safePos = Math.max(0, pos || 0);
+        spacesSpan.textContent = ' '.repeat(safePos);
+        msgSpan.textContent = msg;
+        container.style.display = 'block';
+      }
+
+      hideErrorPointer() {
+        document.getElementById('errorPointerLine').style.display = 'none';
+      }
+
+      evaluateCurrentInput() {
+        const inputStr = document.getElementById('exprInput').value.trim();
+        if (!inputStr) {
+          this.hideErrorPointer();
+          return;
+        }
+
+        this.hideErrorPointer();
+        const startTime = performance.now();
+
+        try {
+          // 1. Lexical Analysis
+          const lexer = new Lexer(inputStr);
+          const tokens = lexer.tokenize();
+
+          // 2. Syntax Analysis (AST Building)
+          const parser = new Parser(tokens);
+          const ast = parser.parse();
+          this.currentAST = ast;
+
+          // 3. Evaluation & Step Recording
+          const evaluator = new Evaluator(this.env);
+          const { result, steps } = evaluator.evaluate(ast);
+
+          const duration = (performance.now() - startTime).toFixed(2);
+
+          // Update Result Display
+          this.displaySuccess(result, ast, tokens, duration);
+
+          // Render Compiler Phases
+          this.renderTokensTable(tokens);
+          this.renderTraversals(ast);
+          this.renderTAC(ast);
+          this.renderStepEvaluation(steps);
+          this.renderAST(ast);
+
+          // Update Variable Table (in case of assignment)
+          this.renderVariableTable();
+
+          // Save to History
+          this.addToHistory(inputStr, result, true);
+
+        } catch (err) {
+          const duration = (performance.now() - startTime).toFixed(2);
+          this.displayError(err, duration);
+          this.addToHistory(inputStr, err.message, false);
+
+          if (err.position !== null && err.position !== undefined) {
+            this.showErrorPointer(err.position, `${err.name}: ${err.message}`);
+          }
+        }
+      }
+
+      displaySuccess(result, ast, tokens, duration) {
+        const resultCard = document.getElementById('resultCard');
+        resultCard.classList.remove('has-error');
+
+        document.getElementById('resultStatusLabel').textContent = 'Computed Result';
+        document.getElementById('resultValueDisplay').textContent = result;
+
+        // Determine Type
+        let typeText = 'Number';
+        if (Number.isInteger(result)) typeText = 'Integer';
+        else if (typeof result === 'number') typeText = 'Float';
+
+        if (ast.type === 'Assign') {
+          typeText = `Assignment (${ast.name} = ${result})`;
+        }
+
+        document.getElementById('metaTypeText').textContent = typeText;
+        document.getElementById('metaTokensCount').textContent = tokens.length;
+        document.getElementById('metaNodesCount').textContent = globalNodeCounter;
+        document.getElementById('metaTimeText').textContent = `${duration} ms`;
+      }
+
+      displayError(err, duration) {
+        const resultCard = document.getElementById('resultCard');
+        resultCard.classList.add('has-error');
+
+        document.getElementById('resultStatusLabel').textContent = `${err.name || 'Error'}`;
+        document.getElementById('resultValueDisplay').textContent = err.message;
+
+        document.getElementById('metaTypeText').textContent = err.phase || 'Failed';
+        document.getElementById('metaTokensCount').textContent = '-';
+        document.getElementById('metaNodesCount').textContent = '-';
+        document.getElementById('metaTimeText').textContent = `${duration} ms`;
+      }
+
+      renderTokensTable(tokens) {
+        const tbody = document.getElementById('tokensTableBody');
+        tbody.innerHTML = '';
+
+        tokens.forEach((tok, idx) => {
+          const tr = document.createElement('tr');
+
+          let badgeClass = 'tok-OP';
+          if (tok.type === TokenType.NUMBER) badgeClass = 'tok-NUMBER';
+          else if (tok.type === TokenType.IDENT) badgeClass = 'tok-IDENT';
+          else if (tok.type === TokenType.ASSIGN) badgeClass = 'tok-ASSIGN';
+          else if (tok.type === TokenType.LPAREN || tok.type === TokenType.RPAREN) badgeClass = 'tok-PAREN';
+          else if (tok.type === TokenType.COMMA) badgeClass = 'tok-COMMA';
+          else if (tok.type === TokenType.EOF) badgeClass = 'tok-EOF';
+
+          tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td><span class="token-badge ${badgeClass}">${tok.type}</span></td>
+            <td><code>${tok.value}</code></td>
+            <td>${tok.position}</td>
+            <td>${tok.length}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      renderTraversals(ast) {
+        document.getElementById('traversalInorder').textContent = Traversals.inorder(ast);
+        document.getElementById('traversalPreorder').textContent = Traversals.preorder(ast);
+        document.getElementById('traversalPostorder').textContent = Traversals.postorder(ast);
+      }
+
+      renderTAC(ast) {
+        const generator = new TACGenerator();
+        const { instructions } = generator.generate(ast);
+
+        const tacText = instructions.map(i => i.text).join('\n') || '; No instructions generated';
+        document.getElementById('tacCodeBox').textContent = tacText;
+
+        const tbody = document.getElementById('quadruplesTableBody');
+        tbody.innerHTML = '';
+        instructions.forEach((inst, idx) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td><code>${inst.op}</code></td>
+            <td><code>${inst.arg1 || '-'}</code></td>
+            <td><code>${inst.arg2 || '-'}</code></td>
+            <td><strong><code>${inst.target || '-'}</code></strong></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      renderStepEvaluation(steps) {
+        this.animController.setSteps(steps);
+        const tbody = document.getElementById('stepsTableBody');
+        tbody.innerHTML = '';
+
+        steps.forEach((step, idx) => {
+          const tr = document.createElement('tr');
+          tr.id = `step-row-${idx}`;
+          tr.innerHTML = `
+            <td>${step.stepNumber}</td>
+            <td><code>${step.nodeId}</code></td>
+            <td><code>${step.subExpr}</code></td>
+            <td>${step.action}</td>
+            <td><strong style="color:var(--accent-cyan); font-family:var(--font-mono);">${step.result}</strong></td>
+          `;
+          tr.addEventListener('click', () => {
+            this.animController.currentIndex = idx;
+            this.animController.applyStep(idx);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      renderAST(ast) {
+        this.currentLayout = TreeLayout.compute(ast);
+        this.viewer.render(this.currentLayout);
+
+        document.getElementById('asciiCodeBox').textContent = TreeTextRenderer.toAscii(ast);
+        document.getElementById('jsonCodeBox').textContent = TreeTextRenderer.toJson(ast);
+      }
+
+      renderVariableTable() {
+        const container = document.getElementById('varListContainer');
+        container.innerHTML = '';
+
+        const vars = this.env.getAll();
+        if (vars.length === 0) {
+          container.innerHTML = '<div class="empty-state">No variables defined</div>';
+          return;
+        }
+
+        vars.forEach(([name, val]) => {
+          const row = document.createElement('div');
+          row.className = 'var-row';
+
+          const formatted = typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(6) : val;
+
+          row.innerHTML = `
+            <span class="var-name">${name}</span>
+            <span class="var-val">${formatted}</span>
+            <button class="var-del-btn" title="Delete variable" data-var="${name}">&times;</button>
+          `;
+
+          row.querySelector('.var-del-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.env.delete(name);
+            this.renderVariableTable();
+          });
+
+          row.addEventListener('click', () => {
+            const input = document.getElementById('exprInput');
+            input.value += name;
+            input.focus();
+          });
+
+          container.appendChild(row);
+        });
+      }
+
+      loadHistory() {
+        try {
+          const saved = localStorage.getItem('compiler_ast_history');
+          if (saved) this.history = JSON.parse(saved);
+        } catch (e) {
+          this.history = [];
+        }
+        this.renderHistory();
+      }
+
+      addToHistory(expr, result, isSuccess) {
+        // Avoid duplicate immediate entry
+        if (this.history.length > 0 && this.history[0].expr === expr) return;
+
+        this.history.unshift({
+          expr,
+          result: String(result),
+          isSuccess,
+          time: new Date().toLocaleTimeString()
+        });
+
+        if (this.history.length > 20) this.history.pop();
+        try {
+          localStorage.setItem('compiler_ast_history', JSON.stringify(this.history));
+        } catch (e) {}
+
+        this.renderHistory();
+      }
+
+      renderHistory() {
+        const container = document.getElementById('historyListContainer');
+        container.innerHTML = '';
+
+        if (this.history.length === 0) {
+          container.innerHTML = '<div class="empty-state">No evaluations yet</div>';
+          return;
+        }
+
+        this.history.forEach(item => {
+          const el = document.createElement('div');
+          el.className = 'history-item';
+          el.innerHTML = `
+            <div class="history-expr">${item.expr}</div>
+            <div class="history-res" style="color: ${item.isSuccess ? 'var(--accent-cyan)' : 'var(--danger)'}">
+              ${item.isSuccess ? '= ' + item.result : 'Error: ' + item.result}
+              <span style="float:right; font-size:10px; color:var(--text-dim);">${item.time}</span>
+            </div>
+          `;
+          el.addEventListener('click', () => {
+            document.getElementById('exprInput').value = item.expr;
+            this.evaluateCurrentInput();
+          });
+          container.appendChild(el);
+        });
+      }
+    }
+
+    // Initialize application on DOM ready
+    window.addEventListener('DOMContentLoaded', () => {
+      // Check saved theme
+      const savedTheme = localStorage.getItem('compiler_theme');
+      if (savedTheme === 'light') {
+        document.body.setAttribute('data-theme', 'light');
+        document.getElementById('themeToggleLabel').textContent = 'Dark Mode';
+        document.getElementById('themeIconMoon').style.display = 'none';
+        document.getElementById('themeIconSun').style.display = 'block';
+      }
+
+      window.app = new AppController();
+    });
+  </script>
+</body>
+</html>
